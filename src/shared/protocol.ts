@@ -1,4 +1,4 @@
-import type { ComparisonEvidence, ProofComparison, ProofRun } from '../core/index.ts'
+import type { ComparisonEvidence, ExperimentSummary, ProofComparison, ProofRun } from '../core/index.ts'
 
 export interface SessionListItem {
   sessionId: string
@@ -36,13 +36,15 @@ export interface ListPresetsResult { presets: PresetListItem[] }
 export interface ControlledRunDesign {
   sourceDir: string
   isolation: 'filesystem-copy'
-  order: ['baseline', 'candidate']
-  trials: 1
+  order: 'alternating'
+  trials: number
   caveat: string
 }
 
 export interface ControlledRunResult extends CompareSessionsResult {
   design: ControlledRunDesign
+  trialComparisons: ProofComparison[]
+  summary: ExperimentSummary
 }
 
 export type RpcError = { code: string; message: string }

@@ -12,7 +12,7 @@ Alpha. The Web `Proof` panel can compare two existing sessions or run a controll
 
 Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. Runtime Git status and tracked diffs are available only for controlled runs, where they are captured before the temporary copies are removed.
 
-The current controlled runner executes one sequential pair. It explicitly labels that result as evidence rather than a statistically reliable ranking; repeat trials and uncertainty estimates are the next milestone. Dependency directories are excluded from copies, external symlinks are refused, and Git worktree pointer files are not copied back into the experiment.
+The controlled runner supports 1–10 paired trials and alternates which variant runs first. It reports explicit-check counts plus mean and median paired deltas for time and tokens; a Student-t 95% interval is shown when at least two pairs exist. Raw paired observations and Session ids remain in JSON exports so the summary can be recomputed. These intervals describe observed variation under a small-sample assumption—they are not an automatic winner or proof of causality. Dependency directories are excluded from copies, external symlinks are refused, and Git worktree pointer files are not copied back into the experiment.
 
 ## Planned evidence
 

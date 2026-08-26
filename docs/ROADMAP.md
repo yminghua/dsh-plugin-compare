@@ -29,5 +29,5 @@
 - [x] Isolated workspace copies
 - [x] Baseline and candidate agent-preset selection
 - [x] Scripted success checks with explicit outcomes
-- [ ] Repeat trials and uncertainty display
+- [x] Repeat trials, alternating order, and paired uncertainty display
 - [ ] GitHub Action and compatibility matrix

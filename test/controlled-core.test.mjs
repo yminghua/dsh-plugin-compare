@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { applyControlledFacts, validateControlledRunInput } from '../lib/core/index.js'
+import { applyControlledFacts, compareRuns, summarizeExperiment, validateControlledRunInput } from '../lib/core/index.js'
 
 const run = {
   id: 'run', label: 'Run', capturedAt: '2026-08-27T00:00:00.000Z',
@@ -28,5 +28,31 @@ test('validates bounded controlled-run requests', () => {
     successCommand: 'pnpm test',
   })
   assert.equal(result.candidate.presetId, 'plugin')
+  assert.equal(result.trials, 1)
   assert.throws(() => validateControlledRunInput({}), /Missing sourceDir/)
+  assert.throws(() => validateControlledRunInput({
+    sourceDir: '/tmp/project', prompt: 'Fix it', trials: 11,
+    baseline: { presetId: 'base', presetName: 'Base' }, candidate: { presetId: 'plugin', presetName: 'Plugin' },
+  }), /trials must be an integer/)
+})
+
+test('summarizes paired trials with uncertainty instead of choosing a winner', () => {
+  const trial = (index, baselineDuration, candidateDuration, baselineTokens, candidateTokens) => compareRuns(
+    { ...run, id: `b${index}`, metrics: { ...run.metrics, outcome: 'pass', durationMs: baselineDuration, tokens: { ...run.metrics.tokens, input: baselineTokens, output: 0 } } },
+    { ...run, id: `c${index}`, metrics: { ...run.metrics, outcome: 'pass', durationMs: candidateDuration, tokens: { ...run.metrics.tokens, input: candidateTokens, output: 0 } } },
+  )
+  const summary = summarizeExperiment([
+    trial(1, 100, 80, 100, 90),
+    trial(2, 200, 250, 100, 90),
+    trial(3, 300, 250, 100, 90),
+  ])
+  assert.equal(summary.trials, 3)
+  assert.equal(summary.outcomes.baseline.pass, 3)
+  assert.equal(summary.observations.length, 3)
+  assert.equal(summary.observations[1].durationDeltaMs, 50)
+  assert.equal(summary.durationMs.medianDelta, -20)
+  assert.ok(summary.durationMs.ci95[0] < 0)
+  assert.ok(summary.durationMs.ci95[1] > 0)
+  assert.deepEqual(summary.totalTokens.ci95, [-10, -10])
+  assert.equal(summarizeExperiment([trial(1, 100, 80, 100, 90)]).durationMs.ci95, null)
 })

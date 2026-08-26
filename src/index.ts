@@ -12,6 +12,7 @@ export interface Config {
   maxRuns?: number
   runTimeoutMs?: number
   checkTimeoutMs?: number
+  maxTrials?: number
 }
 
 export function apply(ctx: Context, _config: Config): void {
@@ -23,6 +24,7 @@ export function apply(ctx: Context, _config: Config): void {
     maxRuns: positiveInteger(_config.maxRuns, 100),
     runTimeoutMs: positiveInteger(_config.runTimeoutMs, 15 * 60_000),
     checkTimeoutMs: positiveInteger(_config.checkTimeoutMs, 5 * 60_000),
+    maxTrials: Math.min(positiveInteger(_config.maxTrials, 10), 10),
   })
 }
 

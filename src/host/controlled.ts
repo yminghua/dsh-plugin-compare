@@ -13,6 +13,7 @@ import {
   comparisonEvidence,
   projectSession,
   projectSessionEvidence,
+  summarizeExperiment,
   validateControlledRunInput,
   type ExplicitCheckResult,
   type GitSnapshotEvidence,
@@ -28,6 +29,7 @@ const MAX_COMMAND_OUTPUT = 200_000
 export interface ControlledRunConfig {
   runTimeoutMs: number
   checkTimeoutMs: number
+  maxTrials: number
 }
 
 interface VariantResult { run: ProofComparison['baseline']; evidence: RunEvidence }
@@ -48,34 +50,63 @@ export async function runControlledComparison(
   config: ControlledRunConfig,
   signal?: AbortSignal,
 ): Promise<ControlledRunResult> {
-  const input = validateControlledRunInput(payload)
+  const input = validateControlledRunInput(payload, config.maxTrials)
   const sourceDir = await realpath(input.sourceDir)
   if (!(await stat(sourceDir)).isDirectory()) throw new Error('sourceDir must be a directory')
   signal?.throwIfAborted()
 
   const root = await mkdtemp(join(tmpdir(), 'dsh-proof-run-'))
-  const baselineDir = join(root, 'baseline')
-  const candidateDir = join(root, 'candidate')
   try {
-    await copyWorkspace(sourceDir, baselineDir)
-    await copyWorkspace(sourceDir, candidateDir)
-    signal?.throwIfAborted()
-    const baseline = await runVariant(ctx, baselineDir, input.prompt, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
-    const candidate = await runVariant(ctx, candidateDir, input.prompt, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+    const comparisons: ProofComparison[] = []
+    let firstEvidence: ReturnType<typeof comparisonEvidence> | undefined
+    for (let index = 0; index < input.trials; index += 1) {
+      const trialRoot = join(root, `trial-${index + 1}`)
+      const baselineDir = join(trialRoot, 'baseline')
+      const candidateDir = join(trialRoot, 'candidate')
+      try {
+        await copyPair(sourceDir, baselineDir, candidateDir)
+        signal?.throwIfAborted()
+        let baseline: VariantResult
+        let candidate: VariantResult
+        if (index % 2 === 0) {
+          baseline = await runVariant(ctx, baselineDir, input.prompt, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
+          candidate = await runVariant(ctx, candidateDir, input.prompt, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+        } else {
+          candidate = await runVariant(ctx, candidateDir, input.prompt, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+          baseline = await runVariant(ctx, baselineDir, input.prompt, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
+        }
+        comparisons.push(compareRuns(baseline.run, candidate.run))
+        firstEvidence ??= comparisonEvidence(baseline.evidence, candidate.evidence)
+      } finally {
+        await rm(trialRoot, { recursive: true, force: true })
+      }
+    }
+    const comparison = comparisons[0]
+    if (!comparison || !firstEvidence) throw new Error('Controlled run produced no trials')
     return {
-      comparison: compareRuns(baseline.run, candidate.run),
-      evidence: comparisonEvidence(baseline.evidence, candidate.evidence),
+      comparison,
+      evidence: firstEvidence,
+      trialComparisons: comparisons,
+      summary: summarizeExperiment(comparisons),
       design: {
         sourceDir,
         isolation: 'filesystem-copy',
-        order: ['baseline', 'candidate'],
-        trials: 1,
-        caveat: 'A single sequential pair is measured evidence, not a statistically reliable ranking.',
+        order: 'alternating',
+        trials: input.trials,
+        caveat: input.trials < 2
+          ? 'A single sequential pair is measured evidence, not a statistically reliable ranking.'
+          : 'Execution order alternates by pair. Intervals quantify observed variation but do not establish causality.',
       },
     }
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+}
+
+async function copyPair(sourceDir: string, baselineDir: string, candidateDir: string): Promise<void> {
+  const results = await Promise.allSettled([copyWorkspace(sourceDir, baselineDir), copyWorkspace(sourceDir, candidateDir)])
+  const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')
+  if (failure) throw failure.reason
 }
 
 async function copyWorkspace(sourceDir: string, destination: string): Promise<void> {

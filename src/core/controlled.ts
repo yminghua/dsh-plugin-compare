@@ -11,6 +11,7 @@ export interface ControlledRunInput {
   baseline: ControlledVariantInput
   candidate: ControlledVariantInput
   successCommand?: string
+  trials: number
 }
 
 export function applyControlledFacts(run: ProofRun, check: ExplicitCheckResult | undefined, git: GitSnapshotEvidence): ProofRun {
@@ -25,14 +26,15 @@ export function applyControlledFacts(run: ProofRun, check: ExplicitCheckResult |
   }
 }
 
-export function validateControlledRunInput(value: unknown): ControlledRunInput {
+export function validateControlledRunInput(value: unknown, maxTrials = 10): ControlledRunInput {
   const input = record(value, 'request')
   const sourceDir = boundedString(input.sourceDir, 'sourceDir', 4096)
   const prompt = boundedString(input.prompt, 'prompt', 100_000)
   const baseline = variant(input.baseline, 'baseline')
   const candidate = variant(input.candidate, 'candidate')
   const successCommand = optionalBoundedString(input.successCommand, 'successCommand', 20_000)
-  return { sourceDir, prompt, baseline, candidate, ...(successCommand ? { successCommand } : {}) }
+  const trials = positiveInteger(input.trials, 'trials', 1, maxTrials)
+  return { sourceDir, prompt, baseline, candidate, trials, ...(successCommand ? { successCommand } : {}) }
 }
 
 function variant(value: unknown, field: string): ControlledVariantInput {
@@ -57,4 +59,10 @@ function boundedString(value: unknown, field: string, max: number): string {
 function optionalBoundedString(value: unknown, field: string, max: number): string | undefined {
   if (value === undefined || value === '') return undefined
   return boundedString(value, field, max)
+}
+
+function positiveInteger(value: unknown, field: string, fallback: number, max: number): number {
+  if (value === undefined) return fallback
+  if (!Number.isInteger(value) || typeof value !== 'number' || value < 1 || value > max) throw new Error(`${field} must be an integer from 1 to ${max}`)
+  return value
 }

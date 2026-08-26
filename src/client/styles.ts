@@ -41,6 +41,7 @@ export function injectStyles(): void {
 .dproof-field { display:grid; gap:5px; color:var(--dsw-alias-label-secondary); font-size:11px; }
 .dproof-field input,.dproof-field textarea,.dproof-field select { box-sizing:border-box; width:100%; border:1px solid var(--dsw-alias-border-l2); border-radius:7px; padding:7px 8px; background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font:inherit; font-size:12px; resize:vertical; }
 .dproof-warning { padding:9px 10px; border-radius:8px; background:var(--dsw-alias-bg-module-platform); color:var(--dsw-alias-label-tertiary); font-size:10px; }
+.dproof-outcomes { display:grid; gap:3px; color:var(--dsw-alias-label-secondary); font-size:11px; }
 .dproof-section { display:grid; gap:9px; border:1px solid var(--dsw-alias-border-l2); border-radius:10px; padding:12px; }
 .dproof-section-head { display:flex; justify-content:space-between; gap:12px; font-size:12px; }
 .dproof-section-head span,.dproof-muted { color:var(--dsw-alias-label-tertiary); font-size:11px; }

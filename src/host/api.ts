@@ -4,7 +4,7 @@ import type { CompareSessionsResult, ListPresetsResult, ListSessionsResult, Read
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
 import { listUsablePresets, runControlledComparison } from './controlled.ts'
 
-interface ApiConfig { maxRuns: number; runTimeoutMs: number; checkTimeoutMs: number }
+interface ApiConfig { maxRuns: number; runTimeoutMs: number; checkTimeoutMs: number; maxTrials: number }
 
 function titleOf(result: TitleSnapshotResult): string | undefined {
   return result.status === 'fulfilled' ? result.value?.title?.title : undefined
