@@ -1,0 +1,48 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { compareRuns, ProofCollector, redactSecrets } from '../lib/core/index.js'
+
+function run(id, outcome, durationMs, input, output) {
+  return {
+    id,
+    label: id,
+    capturedAt: '2026-08-26T00:00:00.000Z',
+    metrics: {
+      outcome,
+      durationMs,
+      steps: 3,
+      toolCalls: 4,
+      failedToolCalls: 0,
+      retries: 0,
+      changedFiles: 2,
+      tokens: { input, output, cacheRead: 0, cacheWrite: 0 },
+    },
+  }
+}
+
+test('a passing candidate beats a failing baseline', () => {
+  const result = compareRuns(run('before', 'fail', 100, 100, 20), run('after', 'pass', 200, 200, 40))
+  assert.equal(result.winner, 'candidate')
+  assert.equal(result.deltas.totalTokens.absolute, 120)
+})
+
+test('collector folds structural session events', () => {
+  const collector = new ProofCollector()
+  collector.record('s1', { type: 'turn/start' })
+  collector.record('s1', { type: 'step/start' })
+  collector.record('s1', { type: 'tool/call' })
+  collector.record('s1', { type: 'tool/result', data: { isError: true } })
+  assert.deepEqual(collector.snapshot('s1'), {
+    events: 4,
+    turns: 1,
+    steps: 1,
+    toolCalls: 1,
+    failedToolCalls: 1,
+  })
+})
+
+test('redactor removes common credentials', () => {
+  const result = redactSecrets('Authorization: Bearer abcdefghijklmnopqrstuvwxyz')
+  assert.equal(result.text, 'Authorization: [REDACTED:bearer_token]')
+  assert.equal(result.matches, 1)
+})

@@ -1,0 +1,9 @@
+node_modules/
+.pnpm-store/
+lib/
+*.tgz
+coverage/
+.DS_Store
+.env
+reports/
+fixtures/private/
