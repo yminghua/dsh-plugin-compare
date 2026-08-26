@@ -1,13 +1,14 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { ProofCollector, type CapturedEvent } from './core/index.ts'
+import { registerProofApi } from './host/api.ts'
+import './host/services.ts'
+import './shared/cordis.ts'
 
 export const name = 'dsh-proof'
-export const inject: string[] = []
+export const inject = ['connection', 'sessionQuery']
 
 export interface Config {
-  redactSecrets?: boolean
-  captureToolContent?: boolean
   maxRuns?: number
 }
 
@@ -16,6 +17,11 @@ export function apply(ctx: Context, _config: Config): void {
   ctx.on('session/event', (session: Session, event: SessionEvent) => {
     collector.record(String(session.id), event as CapturedEvent)
   })
+  registerProofApi(ctx, { maxRuns: positiveInteger(_config.maxRuns, 100) })
+}
+
+function positiveInteger(value: number | undefined, fallback: number): number {
+  return Number.isInteger(value) && value !== undefined && value > 0 ? value : fallback
 }
 
 export * from './core/index.ts'

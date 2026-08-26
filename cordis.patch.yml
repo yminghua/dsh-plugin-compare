@@ -1,8 +1,6 @@
 # dsh-proof host and web-client bundle.
 - insert:
-    - id: dsh-proof
-      name: dsh-proof
-      config:
-        redactSecrets: true
-        captureToolContent: false
-        maxRuns: 100
+  - id: dsh-proof
+    name: dsh-proof
+    config:
+      maxRuns: 100

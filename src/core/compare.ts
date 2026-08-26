@@ -52,10 +52,12 @@ export function compareRuns(baseline: ProofRun, candidate: ProofRun): ProofCompa
       toolCalls: numericDelta(baseline.metrics.toolCalls, candidate.metrics.toolCalls),
       failedToolCalls: numericDelta(baseline.metrics.failedToolCalls, candidate.metrics.failedToolCalls),
       retries: numericDelta(baseline.metrics.retries, candidate.metrics.retries),
-      changedFiles: numericDelta(baseline.metrics.changedFiles, candidate.metrics.changedFiles),
     },
   }
 
+  if (baseline.metrics.changedFiles !== undefined && candidate.metrics.changedFiles !== undefined) {
+    comparison.deltas.changedFiles = numericDelta(baseline.metrics.changedFiles, candidate.metrics.changedFiles)
+  }
   if (baseline.metrics.costUsd !== undefined && candidate.metrics.costUsd !== undefined) {
     comparison.deltas.costUsd = numericDelta(baseline.metrics.costUsd, candidate.metrics.costUsd)
   }

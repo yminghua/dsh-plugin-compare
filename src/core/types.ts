@@ -1,4 +1,5 @@
 export type RunOutcome = 'pass' | 'fail' | 'unknown'
+export type ExecutionStatus = 'completed' | 'failed' | 'aborted' | 'blocked' | 'running' | 'unknown'
 
 export interface TokenUsage {
   input: number
@@ -9,12 +10,14 @@ export interface TokenUsage {
 
 export interface RunMetrics {
   outcome: RunOutcome
+  execution: ExecutionStatus
   durationMs: number
+  turns: number
   steps: number
   toolCalls: number
   failedToolCalls: number
   retries: number
-  changedFiles: number
+  changedFiles?: number
   tokens: TokenUsage
   costUsd?: number
 }
@@ -24,6 +27,9 @@ export interface ProofRun {
   label: string
   sessionId?: string
   plugin?: string
+  cwd?: string
+  model?: string
+  provider?: string
   capturedAt: string
   metrics: RunMetrics
 }
@@ -46,7 +52,7 @@ export interface ProofComparison {
     toolCalls: NumericDelta
     failedToolCalls: NumericDelta
     retries: NumericDelta
-    changedFiles: NumericDelta
+    changedFiles?: NumericDelta
     costUsd?: NumericDelta
   }
 }

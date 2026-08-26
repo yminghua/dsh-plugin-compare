@@ -9,12 +9,13 @@ function run(id, outcome, durationMs, input, output) {
     capturedAt: '2026-08-26T00:00:00.000Z',
     metrics: {
       outcome,
+      execution: 'completed',
       durationMs,
+      turns: 1,
       steps: 3,
       toolCalls: 4,
       failedToolCalls: 0,
       retries: 0,
-      changedFiles: 2,
       tokens: { input, output, cacheRead: 0, cacheWrite: 0 },
     },
   }
@@ -31,7 +32,7 @@ test('collector folds structural session events', () => {
   collector.record('s1', { type: 'turn/start' })
   collector.record('s1', { type: 'step/start' })
   collector.record('s1', { type: 'tool/call' })
-  collector.record('s1', { type: 'tool/result', data: { isError: true } })
+  collector.record('s1', { type: 'tool/result', data: { error: { name: 'Error', code: 'EXIT_1' } } })
   assert.deepEqual(collector.snapshot('s1'), {
     events: 4,
     turns: 1,

@@ -40,5 +40,5 @@ export class ProofCollector {
 function isFailedResult(data: unknown): boolean {
   if (!data || typeof data !== 'object') return false
   const record = data as Record<string, unknown>
-  return record.isError === true || record.status === 'error' || record.ok === false
+  return record.error !== undefined || record.isError === true || record.status === 'error' || record.ok === false
 }

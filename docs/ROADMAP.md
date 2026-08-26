@@ -10,11 +10,11 @@
 
 ## M1 — Compare two existing sessions
 
-- Session list and selection
-- Durable session projections
-- Token, duration, step, tool failure, and retry metrics
-- Baseline/candidate scorecard
-- Self-contained JSON and HTML export
+- [x] Session list and selection
+- [x] Session-log metric projection
+- [x] Token, duration, step, tool failure, and retry metrics
+- [x] Baseline/candidate scorecard
+- [x] Redacted, self-contained JSON and HTML export
 
 ## M2 — Replay and proof cards
 

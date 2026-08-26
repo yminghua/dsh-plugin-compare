@@ -8,7 +8,7 @@
 
 ## Status
 
-Early scaffold. The bundle loads a Host event collector and a Web `Proof` entry point. Session selection and exports are the next milestone; see [the roadmap](./docs/ROADMAP.md).
+Alpha. The Web `Proof` panel can select two existing sessions, compare recorded execution facts, and download redacted JSON or self-contained HTML evidence. See [the roadmap](./docs/ROADMAP.md).
 
 ## Planned evidence
 
@@ -34,7 +34,7 @@ dsh plugin --profile web add link:/absolute/path/to/dsh-proof
 dsh web
 ```
 
-The repository targets the DSH `0.1.0-rc.6` line. DeepSeek Harness is still in developer preview, so every release must be tested against the current published build.
+The repository targets DSH `0.1.1-rc.2` or newer compatible `0.1.x` builds. DeepSeek Harness is still in developer preview, so every release must be tested against the current published build.
 
 ## Architecture
 
