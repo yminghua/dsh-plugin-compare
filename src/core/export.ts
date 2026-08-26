@@ -6,6 +6,7 @@ export interface ExportManifest {
   sessionIds: [string, string]
   timelineEntries: number
   fileDiffs: number
+  gitSnapshots: number
   redaction: { applied: true; matches: number }
 }
 
@@ -30,6 +31,7 @@ export function createProofReport(comparison: ProofComparison, evidence?: Compar
       sessionIds: [comparison.baseline.sessionId ?? comparison.baseline.id, comparison.candidate.sessionId ?? comparison.candidate.id],
       timelineEntries: evidence ? evidence.baseline.timeline.length + evidence.candidate.timeline.length : 0,
       fileDiffs: evidence ? evidence.baseline.fileDiffs.length + evidence.candidate.fileDiffs.length : 0,
+      gitSnapshots: evidence ? Number(evidence.baseline.git?.available === true) + Number(evidence.candidate.git?.available === true) : 0,
       redaction: { applied: true, matches: 0 },
     },
   }
@@ -60,7 +62,7 @@ export function renderProofHtml(report: ProofReport): string {
     ['Retries', integer(deltas.retries.baseline), integer(deltas.retries.candidate)],
   ]
   const body = rows.map(([label, before, after]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(before)}</td><td>${escapeHtml(after)}</td></tr>`).join('')
-  const evidence = safe.evidence ? `<section class="evidence"><h2>Recorded file evidence</h2>${renderDiffColumn('Baseline', safe.evidence.baseline.fileDiffs)}${renderDiffColumn('Candidate', safe.evidence.candidate.fileDiffs)}</section>` : ''
+  const evidence = safe.evidence ? `<section class="evidence"><h2>Recorded file evidence</h2>${renderDiffColumn('Baseline', safe.evidence.baseline.fileDiffs)}${renderGit('Baseline Git snapshot', safe.evidence.baseline.git)}${renderDiffColumn('Candidate', safe.evidence.candidate.fileDiffs)}${renderGit('Candidate Git snapshot', safe.evidence.candidate.git)}</section>` : ''
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DSH Proof · ${escapeHtml(baseline.label)} vs ${escapeHtml(candidate.label)}</title>
@@ -82,12 +84,17 @@ export function renderProofSvg(report: ProofReport): string {
     const y = 164 + index * 38
     return `<text x="32" y="${y}" class="label">${label}</text><text x="430" y="${y}" class="value">${values[index]?.[0]}</text><text x="688" y="${y}" class="value">${values[index]?.[1]}</text>`
   }).join('')
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" role="img" aria-label="DSH Proof comparison card"><style>.title{font:700 24px system-ui;fill:#eef2ff}.small{font:12px system-ui;fill:#8fa5d9}.label{font:13px system-ui;fill:#aeb9d3}.value{font:600 13px ui-monospace,monospace;fill:#eef2ff;text-anchor:end}</style><rect width="720" height="340" rx="20" fill="#121a2e"/><rect x="1" y="1" width="718" height="338" rx="19" fill="none" stroke="#29324d"/><text x="32" y="42" class="small">DSH PROOF · MEASURED FACTS</text><text x="32" y="76" class="title">${escapeHtml(shorten(baseline.label, 24))} → ${escapeHtml(shorten(candidate.label, 24))}</text><text x="430" y="120" class="small" text-anchor="end">BASELINE</text><text x="688" y="120" class="small" text-anchor="end">CANDIDATE</text>${rows}<text x="32" y="316" class="small">Task outcome: undetermined · ${safe.exportManifest.redaction.matches} redaction(s)</text></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" role="img" aria-label="DSH Proof comparison card"><style>.title{font:700 24px system-ui;fill:#eef2ff}.small{font:12px system-ui;fill:#8fa5d9}.label{font:13px system-ui;fill:#aeb9d3}.value{font:600 13px ui-monospace,monospace;fill:#eef2ff;text-anchor:end}</style><rect width="720" height="340" rx="20" fill="#121a2e"/><rect x="1" y="1" width="718" height="338" rx="19" fill="none" stroke="#29324d"/><text x="32" y="42" class="small">DSH PROOF · MEASURED FACTS</text><text x="32" y="76" class="title">${escapeHtml(shorten(baseline.label, 24))} → ${escapeHtml(shorten(candidate.label, 24))}</text><text x="430" y="120" class="small" text-anchor="end">BASELINE</text><text x="688" y="120" class="small" text-anchor="end">CANDIDATE</text>${rows}<text x="32" y="316" class="small">Explicit outcome: ${baseline.metrics.outcome} → ${candidate.metrics.outcome} · winner: ${safe.comparison.winner}</text></svg>`
 }
 
 function renderDiffColumn(label: string, diffs: FileDiffEvidence[]): string {
   if (diffs.length === 0) return `<div class="diff"><h3>${label}</h3><pre>No recorded write/edit diff evidence.</pre></div>`
   return `<div class="diff"><h3>${label}</h3>${diffs.map((diff) => `<strong>${escapeHtml(diff.path)}</strong><pre>- ${escapeHtml(diff.oldText ?? '(new file)')}\n+ ${escapeHtml(diff.newText)}</pre>`).join('')}</div>`
+}
+
+function renderGit(label: string, git: ComparisonEvidence['baseline']['git']): string {
+  if (!git?.available) return ''
+  return `<div class="diff"><h3>${escapeHtml(label)}</h3><strong>Status</strong><pre>${escapeHtml(git.status || '(clean)')}</pre><strong>Tracked diff</strong><pre>${escapeHtml(git.diff || '(none)')}</pre></div>`
 }
 
 function escapeHtml(value: string): string {

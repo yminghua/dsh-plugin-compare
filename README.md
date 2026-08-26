@@ -8,9 +8,11 @@
 
 ## Status
 
-Alpha. The Web `Proof` panel can select two existing sessions, compare recorded execution facts, scrub synchronized timelines, inspect persisted file diffs, and download redacted JSON, self-contained HTML, SVG, or PNG evidence. See [the roadmap](./docs/ROADMAP.md).
+Alpha. The Web `Proof` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).
 
-Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. The plugin does not misrepresent the current workspace as historical Git evidence; Git tree snapshots are reserved for controlled A/B capture.
+Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. Runtime Git status and tracked diffs are available only for controlled runs, where they are captured before the temporary copies are removed.
+
+The current controlled runner executes one sequential pair. It explicitly labels that result as evidence rather than a statistically reliable ranking; repeat trials and uncertainty estimates are the next milestone. Dependency directories are excluded from copies, external symlinks are refused, and Git worktree pointer files are not copied back into the experiment.
 
 ## Planned evidence
 

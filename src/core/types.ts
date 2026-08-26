@@ -32,6 +32,15 @@ export interface ProofRun {
   provider?: string
   capturedAt: string
   metrics: RunMetrics
+  check?: ExplicitCheckResult
+}
+
+export interface ExplicitCheckResult {
+  command: string
+  status: 'pass' | 'fail' | 'error' | 'not-run'
+  exitCode: number | null
+  durationMs: number
+  output: string
 }
 
 export type TimelineLane = 'turn' | 'model' | 'tool' | 'system'
@@ -58,6 +67,15 @@ export interface RunEvidence {
   sessionId: string
   timeline: TimelineEntry[]
   fileDiffs: FileDiffEvidence[]
+  git?: GitSnapshotEvidence
+}
+
+export interface GitSnapshotEvidence {
+  available: boolean
+  head?: string
+  status: string
+  diff: string
+  changedFiles: number
 }
 
 export interface ComparisonEvidence {

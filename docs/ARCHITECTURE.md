@@ -28,3 +28,12 @@ The initial product has one release unit and one consumer: a DSH Web profile. Sp
 - Export manifests state the source, included evidence counts, and redaction matches.
 - Unknown metrics stay unknown instead of being inferred from missing data.
 - A single run is evidence, not statistical proof. Repeated trials will be modeled explicitly.
+
+## Controlled-run boundary
+
+- The trusted Host creates two temporary filesystem copies and runs baseline before candidate with the same prompt.
+- `node_modules`, `.pnpm-store`, and prior proof-run directories are excluded. Internal symlinks are dereferenced; external symlinks are rejected.
+- A regular `.git` directory is copied for isolated status/diff capture. A Git worktree `.git` pointer file is omitted so an experiment cannot address the source repository's Git metadata.
+- The optional success command is an explicit user-authored judgment. Its exit status sets `outcome`; agent completion remains a separate `execution` fact.
+- Temporary copies are removed after their session, check, file-diff, and Git evidence has been projected into the report model.
+- The first implementation is one sequential pair and records that order as a design caveat. It does not rank presets statistically.

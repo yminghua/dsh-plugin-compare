@@ -34,6 +34,13 @@ export function injectStyles(): void {
 .dproof-row span:not(:first-child) { text-align:right; font-variant-numeric:tabular-nums; }
 .dproof-row-head { color:var(--dsw-alias-label-tertiary); background:var(--dsw-alias-bg-layer-2); font-size:11px; }
 .dproof-export { display:flex; justify-content:flex-end; gap:8px; }
+.dproof-tabs { display:flex; gap:4px; padding:3px; border-radius:9px; background:var(--dsw-alias-bg-layer-2); }
+.dproof-tab { flex:1; appearance:none; border:0; border-radius:7px; padding:7px; background:transparent; color:var(--dsw-alias-label-tertiary); font:inherit; font-size:12px; cursor:pointer; }
+.dproof-tab.is-active { background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+.dproof-controlled { display:grid; gap:10px; }
+.dproof-field { display:grid; gap:5px; color:var(--dsw-alias-label-secondary); font-size:11px; }
+.dproof-field input,.dproof-field textarea,.dproof-field select { box-sizing:border-box; width:100%; border:1px solid var(--dsw-alias-border-l2); border-radius:7px; padding:7px 8px; background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font:inherit; font-size:12px; resize:vertical; }
+.dproof-warning { padding:9px 10px; border-radius:8px; background:var(--dsw-alias-bg-module-platform); color:var(--dsw-alias-label-tertiary); font-size:10px; }
 .dproof-section { display:grid; gap:9px; border:1px solid var(--dsw-alias-border-l2); border-radius:10px; padding:12px; }
 .dproof-section-head { display:flex; justify-content:space-between; gap:12px; font-size:12px; }
 .dproof-section-head span,.dproof-muted { color:var(--dsw-alias-label-tertiary); font-size:11px; }

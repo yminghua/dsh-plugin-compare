@@ -4,3 +4,5 @@
     name: dsh-proof
     config:
       maxRuns: 100
+      runTimeoutMs: 900000
+      checkTimeoutMs: 300000

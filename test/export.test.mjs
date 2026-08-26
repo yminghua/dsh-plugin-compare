@@ -35,5 +35,5 @@ test('exports redacted JSON and escaped standalone HTML', () => {
   const svg = renderProofSvg(report)
   assert.match(svg, /^<svg /)
   assert.doesNotMatch(svg, /abcdefghijklmnopqrstuvwxyz/)
-  assert.match(svg, /Task outcome: undetermined/)
+  assert.match(svg, /winner: undetermined/)
 })

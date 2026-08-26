@@ -2,7 +2,6 @@ import type {
   NumericDelta,
   ProofComparison,
   ProofRun,
-  RunMetrics,
   TokenUsage,
 } from './types.ts'
 
@@ -20,24 +19,10 @@ export function numericDelta(baseline: number, candidate: number): NumericDelta 
   }
 }
 
-function outcomeRank(outcome: RunMetrics['outcome']): number {
-  if (outcome === 'pass') return 2
-  if (outcome === 'unknown') return 1
-  return 0
-}
-
 function chooseWinner(baseline: ProofRun, candidate: ProofRun): ProofComparison['winner'] {
-  const baselineRank = outcomeRank(baseline.metrics.outcome)
-  const candidateRank = outcomeRank(candidate.metrics.outcome)
-  if (baselineRank !== candidateRank) return candidateRank > baselineRank ? 'candidate' : 'baseline'
-  if (baseline.metrics.outcome === 'unknown') return 'undetermined'
-
-  const baselineTokens = totalTokens(baseline.metrics.tokens)
-  const candidateTokens = totalTokens(candidate.metrics.tokens)
-  const baselineScore = baseline.metrics.durationMs + baselineTokens
-  const candidateScore = candidate.metrics.durationMs + candidateTokens
-  if (baselineScore === candidateScore) return 'tie'
-  return candidateScore < baselineScore ? 'candidate' : 'baseline'
+  if (baseline.metrics.outcome === 'pass' && candidate.metrics.outcome === 'fail') return 'baseline'
+  if (candidate.metrics.outcome === 'pass' && baseline.metrics.outcome === 'fail') return 'candidate'
+  return 'undetermined'
 }
 
 export function compareRuns(baseline: ProofRun, candidate: ProofRun): ProofComparison {

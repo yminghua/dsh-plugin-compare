@@ -20,14 +20,14 @@
 
 - [x] Synchronized split-screen timeline
 - [x] Persisted `write` / `edit` file-diff evidence
-- [ ] Git tree snapshot evidence (requires capture during a controlled run)
+- [x] Runtime Git status and tracked diff evidence for controlled runs
 - [x] SVG/PNG README card
 - [x] Redaction preview and export manifest
 
 ## M3 — Controlled A/B runs
 
-- Isolated workspace copies
-- Baseline and candidate profile selection
-- Scripted success checks
-- Repeat trials and uncertainty display
-- GitHub Action and compatibility matrix
+- [x] Isolated workspace copies
+- [x] Baseline and candidate agent-preset selection
+- [x] Scripted success checks with explicit outcomes
+- [ ] Repeat trials and uncertainty display
+- [ ] GitHub Action and compatibility matrix

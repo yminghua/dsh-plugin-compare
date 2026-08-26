@@ -1,9 +1,10 @@
 import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { CompareSessionsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
+import type { CompareSessionsResult, ListPresetsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
+import { listUsablePresets, runControlledComparison } from './controlled.ts'
 
-interface ApiConfig { maxRuns: number }
+interface ApiConfig { maxRuns: number; runTimeoutMs: number; checkTimeoutMs: number }
 
 function titleOf(result: TitleSnapshotResult): string | undefined {
   return result.status === 'fulfilled' ? result.value?.title?.title : undefined
@@ -89,6 +90,13 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
           evidence: comparisonEvidence(baseline.evidence, candidate.evidence),
         }
         return { ok: true, value }
+      }
+      if (endpoint === 'presets') {
+        const value: ListPresetsResult = { presets: await listUsablePresets(ctx) }
+        return { ok: true, value }
+      }
+      if (endpoint === 'controlled-run') {
+        return { ok: true, value: await runControlledComparison(ctx, payload, config, signal) }
       }
       return errorResult(new Error(`Unknown endpoint: ${endpoint}`))
     } catch (error) {

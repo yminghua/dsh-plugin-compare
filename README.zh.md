@@ -6,9 +6,11 @@
 
 ## 当前状态
 
-当前 Alpha 版已经包含 Host 事件采集、Session 双选、指标投影、同步时间线和持久化文件 diff 证据，并能下载默认脱敏的 JSON、自包含 HTML 以及 SVG/PNG Proof Card。导出前会显示脱敏命中数和证据清单。任务成功与否仍显示为“未判定”，不会把一次正常结束误写成插件效果更好。详见 [路线图](./docs/ROADMAP.md)。
+当前 Alpha 版既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG Proof Card。详见 [路线图](./docs/ROADMAP.md)。
 
-历史 Session 目前只能展示日志里持久化的 `write` / `edit` diff；不会拿当前工作区状态冒充运行时 Git 证据。Git tree 快照将在受控 A/B 运行阶段采集。
+历史 Session 只展示日志里持久化的 `write` / `edit` diff；不会拿当前工作区状态冒充历史 Git 证据。Git 状态只在受控运行的临时副本中采集。
+
+当前受控运行是顺序执行的一组样本，会明确标注为“证据”，不会给出统计可靠的优胜结论。下一阶段将加入重复试验和不确定性估计。复制时会排除依赖目录、拒绝指向工作区外部的符号链接，并且不会复制 Git worktree 的指针文件。
 
 ## 开发
 

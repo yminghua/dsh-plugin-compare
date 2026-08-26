@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import type { CompareSessionsResult, ListSessionsResult, SessionListItem } from '../shared/protocol.ts'
+import type { CompareSessionsResult, ControlledRunResult, ListPresetsResult, ListSessionsResult, PresetListItem, SessionListItem } from '../shared/protocol.ts'
 import { createProofReport, renderProofHtml, renderProofSvg, sanitizeProofReport, serializeProofReport, type ComparisonEvidence, type ProofComparison, type RunEvidence } from '../core/index.ts'
 import './types.ts'
 import '../shared/cordis.ts'
@@ -38,10 +38,18 @@ async function rpc<T>(ctx: Context, endpoint: string, payload: unknown): Promise
 function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [open, setOpen] = React.useState(false)
   const [sessions, setSessions] = React.useState<SessionListItem[]>([])
+  const [presets, setPresets] = React.useState<PresetListItem[]>([])
+  const [mode, setMode] = React.useState<'sessions' | 'controlled'>('sessions')
   const [baselineId, setBaselineId] = React.useState('')
   const [candidateId, setCandidateId] = React.useState('')
   const [comparison, setComparison] = React.useState<ProofComparison | null>(null)
   const [evidence, setEvidence] = React.useState<ComparisonEvidence | null>(null)
+  const [sourceDir, setSourceDir] = React.useState('')
+  const [prompt, setPrompt] = React.useState('')
+  const [baselinePreset, setBaselinePreset] = React.useState('')
+  const [candidatePreset, setCandidatePreset] = React.useState('')
+  const [successCommand, setSuccessCommand] = React.useState('')
+  const [designCaveat, setDesignCaveat] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
 
@@ -49,14 +57,22 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     setBusy(true)
     setError('')
     try {
-      const result = await rpc<ListSessionsResult>(ctx, 'list', { limit: 100 })
+      const [result, presetResult] = await Promise.all([
+        rpc<ListSessionsResult>(ctx, 'list', { limit: 100 }),
+        rpc<ListPresetsResult>(ctx, 'presets', {}),
+      ])
       setSessions(result.sessions)
+      setPresets(presetResult.presets)
       const candidate = preferred && result.sessions.some((item) => item.sessionId === preferred)
         ? preferred
         : result.sessions[0]?.sessionId ?? ''
       const baseline = result.sessions.find((item) => item.sessionId !== candidate)?.sessionId ?? ''
       setCandidateId(candidate)
       setBaselineId(baseline)
+      setSourceDir(result.sessions.find((item) => item.sessionId === candidate)?.cwd ?? '')
+      const usable = presetResult.presets.filter((item) => !item.broken)
+      setBaselinePreset(usable[0]?.id ?? '')
+      setCandidatePreset(usable[1]?.id ?? usable[0]?.id ?? '')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -68,6 +84,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     setOpen(true)
     setComparison(null)
     setEvidence(null)
+    setDesignCaveat('')
     void loadSessions(request.sessionId)
   }), [loadSessions])
 
@@ -86,6 +103,31 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     }
   }, [baselineId, candidateId, ctx])
 
+  const runControlled = React.useCallback(async () => {
+    if (!sourceDir || !prompt || !baselinePreset || !candidatePreset) return
+    setBusy(true)
+    setError('')
+    setComparison(null)
+    setEvidence(null)
+    try {
+      const name = (id: string) => presets.find((item) => item.id === id)?.name ?? id
+      const result = await rpc<ControlledRunResult>(ctx, 'controlled-run', {
+        sourceDir,
+        prompt,
+        baseline: { presetId: baselinePreset, presetName: name(baselinePreset) },
+        candidate: { presetId: candidatePreset, presetName: name(candidatePreset) },
+        ...(successCommand.trim() ? { successCommand } : {}),
+      })
+      setComparison(result.comparison)
+      setEvidence(result.evidence)
+      setDesignCaveat(result.design.caveat)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setBusy(false)
+    }
+  }, [baselinePreset, candidatePreset, ctx, presets, prompt, sourceDir, successCommand])
+
   if (!open) return null
   return React.createElement('section', { className: 'dproof-panel', 'aria-label': 'DSH Proof comparison' },
     React.createElement('header', { className: 'dproof-head' },
@@ -94,23 +136,66 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
       React.createElement('button', { type: 'button', className: 'dproof-close', onClick: () => setOpen(false), 'aria-label': 'Close' }, '×'),
     ),
     React.createElement('div', { className: 'dproof-body' },
-      React.createElement('div', { className: 'dproof-columns' },
-        sessionPicker('Baseline', baselineId, sessions, setBaselineId),
-        sessionPicker('Candidate', candidateId, sessions, setCandidateId),
+      React.createElement('div', { className: 'dproof-tabs' },
+        tab('Existing sessions', mode === 'sessions', () => { setMode('sessions'); setComparison(null); setEvidence(null) }),
+        tab('Controlled A/B', mode === 'controlled', () => { setMode('controlled'); setComparison(null); setEvidence(null) }),
       ),
-      React.createElement('button', {
-        type: 'button',
-        className: 'dproof-compare',
-        disabled: busy || !baselineId || !candidateId || baselineId === candidateId,
-        onClick: () => void compare(),
-      }, busy ? 'Reading evidence…' : 'Compare sessions'),
+      mode === 'sessions' ? React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'dproof-columns' },
+          sessionPicker('Baseline', baselineId, sessions, setBaselineId),
+          sessionPicker('Candidate', candidateId, sessions, setCandidateId),
+        ),
+        React.createElement('button', {
+          type: 'button', className: 'dproof-compare',
+          disabled: busy || !baselineId || !candidateId || baselineId === candidateId,
+          onClick: () => void compare(),
+        }, busy ? 'Reading evidence…' : 'Compare sessions'),
+      ) : React.createElement(ControlledForm, {
+        presets, sourceDir, setSourceDir, prompt, setPrompt, baselinePreset, setBaselinePreset,
+        candidatePreset, setCandidatePreset, successCommand, setSuccessCommand, busy,
+        onRun: () => void runControlled(),
+      }),
       error ? React.createElement('div', { className: 'dproof-error', role: 'alert' }, error) : null,
-      comparison && evidence ? React.createElement(ComparisonView, { comparison, evidence }) : React.createElement(
+      comparison && evidence ? React.createElement(ComparisonView, { comparison, evidence, caveat: designCaveat }) : React.createElement(
         'div',
         { className: 'dproof-empty' },
-        sessions.length < 2 ? 'At least two sessions are needed for a comparison.' : 'Choose two sessions to compare their recorded execution facts.',
+        mode === 'controlled'
+          ? 'Both variants receive the same prompt in separate temporary workspace copies. Running may use model tokens and execute the optional check command.'
+          : sessions.length < 2 ? 'At least two sessions are needed for a comparison.' : 'Choose two sessions to compare their recorded execution facts.',
       ),
     ),
+  )
+}
+
+function tab(label: string, active: boolean, onClick: () => void): React.ReactElement {
+  return React.createElement('button', { type: 'button', className: `dproof-tab${active ? ' is-active' : ''}`, onClick }, label)
+}
+
+interface ControlledFormProps {
+  presets: PresetListItem[]
+  sourceDir: string; setSourceDir: (value: string) => void
+  prompt: string; setPrompt: (value: string) => void
+  baselinePreset: string; setBaselinePreset: (value: string) => void
+  candidatePreset: string; setCandidatePreset: (value: string) => void
+  successCommand: string; setSuccessCommand: (value: string) => void
+  busy: boolean; onRun: () => void
+}
+
+function ControlledForm(props: ControlledFormProps): React.ReactElement {
+  const preset = (label: string, value: string, onChange: (value: string) => void) => React.createElement('label', { className: 'dproof-field' },
+    React.createElement('span', null, label),
+    React.createElement('select', { value, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onChange(event.target.value) },
+      React.createElement('option', { value: '' }, 'Select preset'),
+      ...props.presets.map((item) => React.createElement('option', { key: item.id, value: item.id, disabled: Boolean(item.broken) }, `${item.name}${item.broken ? ' · broken' : ''}`)),
+    ),
+  )
+  return React.createElement('section', { className: 'dproof-controlled' },
+    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Source workspace'), React.createElement('input', { value: props.sourceDir, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSourceDir(event.target.value), placeholder: '/absolute/project/path' })),
+    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Same prompt for both variants'), React.createElement('textarea', { value: props.prompt, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => props.setPrompt(event.target.value), rows: 4 })),
+    React.createElement('div', { className: 'dproof-columns' }, preset('Baseline preset', props.baselinePreset, props.setBaselinePreset), preset('Candidate preset', props.candidatePreset, props.setCandidatePreset)),
+    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Success check command · optional'), React.createElement('input', { value: props.successCommand, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSuccessCommand(event.target.value), placeholder: 'pnpm test' })),
+    React.createElement('div', { className: 'dproof-warning' }, 'This explicitly copies the workspace, runs two agents, and executes the check command inside each temporary copy.'),
+    React.createElement('button', { type: 'button', className: 'dproof-compare', disabled: props.busy || !props.sourceDir || !props.prompt || !props.baselinePreset || !props.candidatePreset, onClick: props.onRun }, props.busy ? 'Running controlled pair…' : 'Run controlled A/B'),
   )
 }
 
@@ -130,7 +215,7 @@ function sessionPicker(label: string, value: string, sessions: SessionListItem[]
   )
 }
 
-function ComparisonView({ comparison, evidence }: { comparison: ProofComparison; evidence: ComparisonEvidence }): React.ReactElement {
+function ComparisonView({ comparison, evidence, caveat }: { comparison: ProofComparison; evidence: ComparisonEvidence; caveat?: string }): React.ReactElement {
   const [progress, setProgress] = React.useState(1)
   const report = React.useMemo(() => createProofReport(comparison, evidence), [comparison, evidence])
   const safe = React.useMemo(() => sanitizeProofReport(report), [report])
@@ -144,8 +229,8 @@ function ComparisonView({ comparison, evidence }: { comparison: ProofComparison;
   ]
   return React.createElement('div', { className: 'dproof-results' },
     React.createElement('div', { className: 'dproof-verdict' },
-      React.createElement('strong', null, 'Task outcome: undetermined'),
-      React.createElement('span', null, 'A completed run is not proof that the task succeeded.'),
+      React.createElement('strong', null, comparison.baseline.metrics.outcome === 'unknown' && comparison.candidate.metrics.outcome === 'unknown' ? 'Task outcome: undetermined' : `Explicit check: ${comparison.baseline.metrics.outcome} → ${comparison.candidate.metrics.outcome}`),
+      React.createElement('span', null, caveat || 'A completed run is not proof that the task succeeded.'),
     ),
     React.createElement('div', { className: 'dproof-table' },
       React.createElement('div', { className: 'dproof-row dproof-row-head' },
@@ -159,6 +244,13 @@ function ComparisonView({ comparison, evidence }: { comparison: ProofComparison;
         React.createElement('span', null, format(candidate)),
       )),
     ),
+    comparison.baseline.check || comparison.candidate.check ? React.createElement('section', { className: 'dproof-section' },
+      React.createElement('div', { className: 'dproof-section-head' }, React.createElement('strong', null, 'Explicit success checks')),
+      React.createElement('div', { className: 'dproof-diffs' },
+        React.createElement(CheckView, { label: 'Baseline', check: safe.comparison.baseline.check }),
+        React.createElement(CheckView, { label: 'Candidate', check: safe.comparison.candidate.check }),
+      ),
+    ) : null,
     React.createElement('section', { className: 'dproof-section' },
       React.createElement('div', { className: 'dproof-section-head' },
         React.createElement('strong', null, 'Synchronized timeline'),
@@ -215,7 +307,20 @@ function DiffList({ label, evidence }: { label: string; evidence: RunEvidence })
       React.createElement('summary', null, diff.path),
       React.createElement('pre', null, `- ${diff.oldText ?? '(new file)'}\n+ ${diff.newText}`),
     )),
+    evidence.git?.available ? React.createElement('details', null,
+      React.createElement('summary', null, `Git snapshot · ${evidence.git.changedFiles} changed file(s)`),
+      React.createElement('pre', null, `${evidence.git.status || '(clean)'}\n\n${evidence.git.diff || '(no tracked diff)'}`),
+    ) : null,
     evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No write/edit diff metadata recorded') : null,
+  )
+}
+
+function CheckView({ label, check }: { label: string; check: ProofComparison['baseline']['check'] }): React.ReactElement {
+  if (!check) return React.createElement('div', { className: 'dproof-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dproof-muted' }, 'Not configured'))
+  return React.createElement('div', { className: 'dproof-diff-list' },
+    React.createElement('b', null, `${label} · ${check.status}`),
+    React.createElement('code', null, check.command),
+    check.output ? React.createElement('pre', null, check.output) : null,
   )
 }
 

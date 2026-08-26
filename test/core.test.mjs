@@ -27,6 +27,12 @@ test('a passing candidate beats a failing baseline', () => {
   assert.equal(result.deltas.totalTokens.absolute, 120)
 })
 
+test('one noisy passing pair does not produce a winner', () => {
+  const result = compareRuns(run('before', 'pass', 500, 500, 100), run('after', 'pass', 100, 100, 20))
+  assert.equal(result.winner, 'undetermined')
+  assert.equal(result.deltas.durationMs.absolute, -400)
+})
+
 test('collector folds structural session events', () => {
   const collector = new ProofCollector()
   collector.record('s1', { type: 'turn/start' })
