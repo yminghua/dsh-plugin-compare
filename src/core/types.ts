@@ -34,6 +34,37 @@ export interface ProofRun {
   metrics: RunMetrics
 }
 
+export type TimelineLane = 'turn' | 'model' | 'tool' | 'system'
+export type TimelineStatus = 'start' | 'complete' | 'failed' | 'retry' | 'info'
+
+export interface TimelineEntry {
+  seq: number
+  time: number
+  elapsedMs: number
+  type: string
+  lane: TimelineLane
+  status: TimelineStatus
+  label: string
+}
+
+export interface FileDiffEvidence {
+  seq: number
+  path: string
+  oldText: string | null
+  newText: string
+}
+
+export interface RunEvidence {
+  sessionId: string
+  timeline: TimelineEntry[]
+  fileDiffs: FileDiffEvidence[]
+}
+
+export interface ComparisonEvidence {
+  baseline: RunEvidence
+  candidate: RunEvidence
+}
+
 export interface NumericDelta {
   baseline: number
   candidate: number

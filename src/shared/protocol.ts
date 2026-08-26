@@ -1,4 +1,4 @@
-import type { ProofComparison, ProofRun } from '../core/index.ts'
+import type { ComparisonEvidence, ProofComparison, ProofRun } from '../core/index.ts'
 
 export interface SessionListItem {
   sessionId: string
@@ -20,6 +20,7 @@ export interface ReadSessionResult {
 
 export interface CompareSessionsResult {
   comparison: ProofComparison
+  evidence: ComparisonEvidence
 }
 
 export type RpcError = { code: string; message: string }

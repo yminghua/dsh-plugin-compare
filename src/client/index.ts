@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CompareSessionsResult, ListSessionsResult, SessionListItem } from '../shared/protocol.ts'
-import { createProofReport, renderProofHtml, serializeProofReport, type ProofComparison } from '../core/index.ts'
+import { createProofReport, renderProofHtml, renderProofSvg, sanitizeProofReport, serializeProofReport, type ComparisonEvidence, type ProofComparison, type RunEvidence } from '../core/index.ts'
 import './types.ts'
 import '../shared/cordis.ts'
 import { injectStyles } from './styles.ts'
@@ -41,6 +41,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [baselineId, setBaselineId] = React.useState('')
   const [candidateId, setCandidateId] = React.useState('')
   const [comparison, setComparison] = React.useState<ProofComparison | null>(null)
+  const [evidence, setEvidence] = React.useState<ComparisonEvidence | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
 
@@ -66,6 +67,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   React.useEffect(() => subscribeProofPanel((request) => {
     setOpen(true)
     setComparison(null)
+    setEvidence(null)
     void loadSessions(request.sessionId)
   }), [loadSessions])
 
@@ -76,6 +78,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     try {
       const result = await rpc<CompareSessionsResult>(ctx, 'compare', { baselineId, candidateId })
       setComparison(result.comparison)
+      setEvidence(result.evidence)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -102,7 +105,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
         onClick: () => void compare(),
       }, busy ? 'Reading evidence…' : 'Compare sessions'),
       error ? React.createElement('div', { className: 'dproof-error', role: 'alert' }, error) : null,
-      comparison ? React.createElement(ComparisonView, { comparison }) : React.createElement(
+      comparison && evidence ? React.createElement(ComparisonView, { comparison, evidence }) : React.createElement(
         'div',
         { className: 'dproof-empty' },
         sessions.length < 2 ? 'At least two sessions are needed for a comparison.' : 'Choose two sessions to compare their recorded execution facts.',
@@ -127,7 +130,10 @@ function sessionPicker(label: string, value: string, sessions: SessionListItem[]
   )
 }
 
-function ComparisonView({ comparison }: { comparison: ProofComparison }): React.ReactElement {
+function ComparisonView({ comparison, evidence }: { comparison: ProofComparison; evidence: ComparisonEvidence }): React.ReactElement {
+  const [progress, setProgress] = React.useState(1)
+  const report = React.useMemo(() => createProofReport(comparison, evidence), [comparison, evidence])
+  const safe = React.useMemo(() => sanitizeProofReport(report), [report])
   const rows: Array<[string, number, number, (value: number) => string]> = [
     ['Tokens', comparison.deltas.totalTokens.baseline, comparison.deltas.totalTokens.candidate, compact],
     ['Active time', comparison.deltas.durationMs.baseline, comparison.deltas.durationMs.candidate, duration],
@@ -153,23 +159,102 @@ function ComparisonView({ comparison }: { comparison: ProofComparison }): React.
         React.createElement('span', null, format(candidate)),
       )),
     ),
+    React.createElement('section', { className: 'dproof-section' },
+      React.createElement('div', { className: 'dproof-section-head' },
+        React.createElement('strong', null, 'Synchronized timeline'),
+        React.createElement('span', null, `${Math.round(progress * 100)}%`),
+      ),
+      React.createElement('input', {
+        className: 'dproof-scrubber', type: 'range', min: 0, max: 100, value: Math.round(progress * 100),
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => setProgress(Number(event.target.value) / 100),
+        'aria-label': 'Timeline progress',
+      }),
+      React.createElement('div', { className: 'dproof-timelines' },
+        React.createElement(Timeline, { label: 'Baseline', evidence: safe.evidence?.baseline ?? evidence.baseline, progress }),
+        React.createElement(Timeline, { label: 'Candidate', evidence: safe.evidence?.candidate ?? evidence.candidate, progress }),
+      ),
+    ),
+    React.createElement('section', { className: 'dproof-section' },
+      React.createElement('div', { className: 'dproof-section-head' },
+        React.createElement('strong', null, 'Recorded file evidence'),
+        React.createElement('span', null, `${safe.exportManifest.fileDiffs} diff(s)`),
+      ),
+      React.createElement('div', { className: 'dproof-diffs' },
+        React.createElement(DiffList, { label: 'Baseline', evidence: safe.evidence?.baseline ?? evidence.baseline }),
+        React.createElement(DiffList, { label: 'Candidate', evidence: safe.evidence?.candidate ?? evidence.candidate }),
+      ),
+      React.createElement('div', { className: 'dproof-manifest' },
+        `Preview redaction applied · ${safe.exportManifest.redaction.matches} secret-like value(s) hidden · source: canonical session log`,
+      ),
+    ),
     React.createElement('div', { className: 'dproof-export' },
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(comparison, 'json') }, 'Download JSON'),
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(comparison, 'html') }, 'Download HTML'),
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'json') }, 'JSON'),
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'html') }, 'HTML'),
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'svg') }, 'SVG card'),
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => void downloadPng(report) }, 'PNG card'),
     ),
   )
 }
 
-function downloadReport(comparison: ProofComparison, format: 'json' | 'html'): void {
-  const report = createProofReport(comparison)
-  const content = format === 'json' ? serializeProofReport(report) : renderProofHtml(report)
-  const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/html' })
+function Timeline({ label, evidence, progress }: { label: string; evidence: RunEvidence; progress: number }): React.ReactElement {
+  const end = evidence.timeline.length === 0 ? -1 : Math.round(progress * (evidence.timeline.length - 1))
+  const start = Math.max(0, end - 5)
+  return React.createElement('div', { className: 'dproof-timeline' },
+    React.createElement('b', null, label),
+    ...evidence.timeline.slice(start, end + 1).map((entry, index, visible) => React.createElement('div', {
+      key: entry.seq, className: `dproof-event dproof-event-${entry.status}${index === visible.length - 1 ? ' is-current' : ''}`,
+    }, React.createElement('span', null, duration(entry.elapsedMs)), React.createElement('strong', null, entry.label))),
+    end < 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No timeline events') : null,
+  )
+}
+
+function DiffList({ label, evidence }: { label: string; evidence: RunEvidence }): React.ReactElement {
+  return React.createElement('div', { className: 'dproof-diff-list' },
+    React.createElement('b', null, label),
+    ...evidence.fileDiffs.slice(0, 4).map((diff, index) => React.createElement('details', { key: `${diff.seq}-${diff.path}-${index}` },
+      React.createElement('summary', null, diff.path),
+      React.createElement('pre', null, `- ${diff.oldText ?? '(new file)'}\n+ ${diff.newText}`),
+    )),
+    evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No write/edit diff metadata recorded') : null,
+  )
+}
+
+function downloadReport(report: ReturnType<typeof createProofReport>, format: 'json' | 'html' | 'svg'): void {
+  const content = format === 'json' ? serializeProofReport(report) : format === 'html' ? renderProofHtml(report) : renderProofSvg(report)
+  const mime = format === 'json' ? 'application/json' : format === 'html' ? 'text/html' : 'image/svg+xml'
+  const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = `dsh-proof-${Date.now()}.${format}`
   link.click()
   URL.revokeObjectURL(url)
+}
+
+async function downloadPng(report: ReturnType<typeof createProofReport>): Promise<void> {
+  const svg = renderProofSvg(report)
+  const source = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+  try {
+    const image = new Image()
+    image.src = source
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = 1440
+    canvas.height = 680
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Canvas is unavailable')
+    context.scale(2, 2)
+    context.drawImage(image, 0, 0, 720, 340)
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('PNG export failed')), 'image/png'))
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `dsh-proof-${Date.now()}.png`
+    link.click()
+    URL.revokeObjectURL(url)
+  } finally {
+    URL.revokeObjectURL(source)
+  }
 }
 
 function compact(value: number): string {

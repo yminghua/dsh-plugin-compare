@@ -6,7 +6,9 @@
 
 ## 当前状态
 
-当前 Alpha 版已经包含 Host 事件采集、Session 双选、指标投影和比较面板，并能下载默认脱敏的 JSON 或自包含 HTML 证据报告。任务成功与否仍显示为“未判定”，不会把一次正常结束误写成插件效果更好。详见 [路线图](./docs/ROADMAP.md)。
+当前 Alpha 版已经包含 Host 事件采集、Session 双选、指标投影、同步时间线和持久化文件 diff 证据，并能下载默认脱敏的 JSON、自包含 HTML 以及 SVG/PNG Proof Card。导出前会显示脱敏命中数和证据清单。任务成功与否仍显示为“未判定”，不会把一次正常结束误写成插件效果更好。详见 [路线图](./docs/ROADMAP.md)。
+
+历史 Session 目前只能展示日志里持久化的 `write` / `edit` diff；不会拿当前工作区状态冒充运行时 Git 证据。Git tree 快照将在受控 A/B 运行阶段采集。
 
 ## 开发
 
@@ -28,7 +30,7 @@ dsh web
 
 - `src/core/`：与 DSH 无关的比较、指标、脱敏逻辑
 - `src/index.ts`：DSH Host 事件适配
-- `src/client/`：Web UI 和后续分屏回放
+- `src/client/`：Web UI、同步时间线和 Proof Card 导出
 - `test/`：核心行为与事件折叠测试
 - `docs/`：架构、信任边界和路线图
 

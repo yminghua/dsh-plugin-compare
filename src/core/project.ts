@@ -1,4 +1,5 @@
 import type { ExecutionStatus, ProofRun, TokenUsage } from './types.ts'
+import { fileDiffsFromEvent } from './evidence.ts'
 
 export interface ProofEvent {
   seq: number
@@ -53,9 +54,11 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
   let execution: ExecutionStatus = 'unknown'
   let model: string | undefined
   let provider: string | undefined
+  const changedPaths = new Set<string>()
   const tokens: TokenUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 
   for (const event of input.events) {
+    for (const diff of fileDiffsFromEvent(event)) changedPaths.add(diff.path)
     if (Number.isFinite(event.time)) {
       minTime = minTime === undefined ? event.time : Math.min(minTime, event.time)
       maxTime = maxTime === undefined ? event.time : Math.max(maxTime, event.time)
@@ -132,6 +135,7 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
       toolCalls,
       failedToolCalls,
       retries,
+      ...(changedPaths.size > 0 ? { changedFiles: changedPaths.size } : {}),
       tokens,
     },
   }

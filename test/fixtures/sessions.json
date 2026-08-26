@@ -6,7 +6,7 @@
       { "seq": 1, "type": "step/start", "time": 1100, "data": { "turn": 1, "step": 1 } },
       { "seq": 2, "type": "request/header", "time": 1110, "data": { "reason": "initial", "header": { "config": { "provider": "deepseek", "model": "v4" } } } },
       { "seq": 3, "type": "tool/call", "time": 1200, "data": { "turn": 1, "step": 1, "callId": "call-1", "name": "bash", "arguments": "{}" } },
-      { "seq": 4, "type": "tool/result", "time": 1400, "data": { "turn": 1, "step": 1, "message": {}, "error": { "name": "Error", "code": "EXIT_1" } } },
+      { "seq": 4, "type": "tool/result", "time": 1400, "data": { "turn": 1, "step": 1, "message": {}, "error": { "name": "Error", "code": "EXIT_1" }, "meta": { "diffs": [{ "path": "src/config.ts", "oldText": "export const token = 'old'", "newText": "export const token = 'Bearer abcdefghijklmnopqrstuvwxyz'" }] } } },
       { "seq": 5, "type": "llm/retry", "time": 1450, "data": {} },
       { "seq": 6, "type": "assistant/message", "time": 1700, "data": { "turn": 1, "step": 1, "message": {}, "usage": { "inputTokens": 1000, "outputTokens": 200, "cacheReadTokens": 100, "cacheWriteTokens": 50 } } },
       { "seq": 7, "type": "step/end", "time": 1750, "data": { "turn": 1, "step": 1 } },

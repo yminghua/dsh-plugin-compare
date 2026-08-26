@@ -42,4 +42,7 @@ test('Host RPC lists and compares sessions through sessionQuery', async () => {
   assert.equal(compared.value.comparison.winner, 'undetermined')
   assert.equal(compared.value.comparison.deltas.totalTokens.baseline, 1350)
   assert.equal(compared.value.comparison.deltas.totalTokens.candidate, 600)
+  assert.equal(compared.value.comparison.baseline.metrics.changedFiles, 1)
+  assert.equal(compared.value.evidence.baseline.timeline.length, fixtures.baseline.events.length)
+  assert.equal(compared.value.evidence.baseline.fileDiffs[0].path, 'src/config.ts')
 })

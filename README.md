@@ -8,15 +8,16 @@
 
 ## Status
 
-Alpha. The Web `Proof` panel can select two existing sessions, compare recorded execution facts, and download redacted JSON or self-contained HTML evidence. See [the roadmap](./docs/ROADMAP.md).
+Alpha. The Web `Proof` panel can select two existing sessions, compare recorded execution facts, scrub synchronized timelines, inspect persisted file diffs, and download redacted JSON, self-contained HTML, SVG, or PNG evidence. See [the roadmap](./docs/ROADMAP.md).
+
+Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. The plugin does not misrepresent the current workspace as historical Git evidence; Git tree snapshots are reserved for controlled A/B capture.
 
 ## Planned evidence
 
 - Task outcome and explicit test result
 - Tokens, cost, time, steps, retries, and tool failures
-- Tool trajectory and Git diff
-- Synchronized before/after replay
-- Redacted HTML, JSON, SVG, and PNG exports
+- Explicit test results and controlled-run Git snapshots
+- Repeat trials and uncertainty display
 
 ## Development
 

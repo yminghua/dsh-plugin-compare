@@ -1,4 +1,4 @@
-import { compareRuns, projectSession, type ProofRun } from '../core/index.ts'
+import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { CompareSessionsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
@@ -31,19 +31,22 @@ function sessionItem(record: SessionRecord, titles: Map<string, string>): Sessio
   }
 }
 
-async function readRun(query: SessionQueryLike, sessionId: string, signal?: AbortSignal): Promise<ProofRun> {
+interface ReadProjection { run: ProofRun; evidence: RunEvidence }
+
+async function readProjection(query: SessionQueryLike, sessionId: string, signal?: AbortSignal): Promise<ReadProjection> {
   const records = await query.listSessions(signal)
   const record = records.find((item) => item.header.id === sessionId)
   if (record === undefined) throw new Error(`Session not found: ${sessionId}`)
   const id = sessionId as SessionId
   const [read, titles] = await Promise.all([query.readSession(id), titleMap(query, [id], signal)])
-  return projectSession({
+  const input = {
     id: sessionId,
     title: titles.get(sessionId) ?? '(untitled)',
     createdAt: record.header.createdAt,
     ...(record.header.cwd !== undefined ? { cwd: record.header.cwd } : {}),
-    events: read.events,
-  })
+    events: read.events as readonly ProofEvent[],
+  }
+  return { run: projectSession(input), evidence: projectSessionEvidence(sessionId, input.events) }
 }
 
 function sessionIdFrom(value: unknown, field: string): string {
@@ -70,7 +73,7 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
         return { ok: true, value }
       }
       if (endpoint === 'read') {
-        const value: ReadSessionResult = { run: await readRun(ctx.sessionQuery, sessionIdFrom(payload, 'sessionId'), signal) }
+        const value: ReadSessionResult = { run: (await readProjection(ctx.sessionQuery, sessionIdFrom(payload, 'sessionId'), signal)).run }
         return { ok: true, value }
       }
       if (endpoint === 'compare') {
@@ -78,10 +81,13 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
         const candidateId = sessionIdFrom(payload, 'candidateId')
         if (baselineId === candidateId) throw new Error('Choose two different sessions')
         const [baseline, candidate] = await Promise.all([
-          readRun(ctx.sessionQuery, baselineId, signal),
-          readRun(ctx.sessionQuery, candidateId, signal),
+          readProjection(ctx.sessionQuery, baselineId, signal),
+          readProjection(ctx.sessionQuery, candidateId, signal),
         ])
-        const value: CompareSessionsResult = { comparison: compareRuns(baseline, candidate) }
+        const value: CompareSessionsResult = {
+          comparison: compareRuns(baseline.run, candidate.run),
+          evidence: comparisonEvidence(baseline.evidence, candidate.evidence),
+        }
         return { ok: true, value }
       }
       return errorResult(new Error(`Unknown endpoint: ${endpoint}`))

@@ -18,10 +18,11 @@
 
 ## M2 — Replay and proof cards
 
-- Synchronized split-screen timeline
-- File and Git diff evidence
-- SVG/PNG README card
-- Redaction preview and export manifest
+- [x] Synchronized split-screen timeline
+- [x] Persisted `write` / `edit` file-diff evidence
+- [ ] Git tree snapshot evidence (requires capture during a controlled run)
+- [x] SVG/PNG README card
+- [x] Redaction preview and export manifest
 
 ## M3 — Controlled A/B runs
 

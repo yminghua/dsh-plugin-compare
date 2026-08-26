@@ -15,6 +15,7 @@ test('projects measured session facts without inventing task success', () => {
   assert.equal(run.metrics.toolCalls, 1)
   assert.equal(run.metrics.failedToolCalls, 1)
   assert.equal(run.metrics.retries, 1)
+  assert.equal(run.metrics.changedFiles, 1)
   assert.deepEqual(run.metrics.tokens, { input: 1000, output: 200, cacheRead: 100, cacheWrite: 50 })
   assert.equal(run.provider, 'deepseek')
   assert.equal(run.model, 'v4')
