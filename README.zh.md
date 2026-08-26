@@ -38,6 +38,8 @@ dsh web
 
 当前开发基线为 DSH `0.1.1-rc.2`。DSH 仍处于快速迭代阶段，每次发布都必须重新执行真实服务契约测试。
 
+CI 会分别验证最低支持版本和 npm 动态 `latest`：真实安装插件、启动 Web Host 并读取客户端 bundle。详情见 [兼容性说明](./docs/COMPATIBILITY.md)。
+
 ## License
 
 MIT

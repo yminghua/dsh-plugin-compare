@@ -30,4 +30,4 @@
 - [x] Baseline and candidate agent-preset selection
 - [x] Scripted success checks with explicit outcomes
 - [x] Repeat trials, alternating order, and paired uncertainty display
-- [ ] GitHub Action and compatibility matrix
+- [x] GitHub Action and minimum/latest DSH compatibility matrix

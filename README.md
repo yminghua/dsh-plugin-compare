@@ -39,6 +39,8 @@ dsh web
 
 The repository targets DSH `0.1.1-rc.2` or newer compatible `0.1.x` builds. DeepSeek Harness is still in developer preview, so every release must be tested against the current published build.
 
+CI tests both the minimum supported DSH version and the dynamic npm `latest` tag through a real plugin-install and Web-Host boot smoke test. See [Compatibility](./docs/COMPATIBILITY.md).
+
 ## Architecture
 
 The package keeps deterministic comparison logic in `src/core`, DSH Host integration in `src/index.ts`, and the browser bundle in `src/client`. See [ARCHITECTURE.md](./docs/ARCHITECTURE.md).

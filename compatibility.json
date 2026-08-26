@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "dsh": {
+    "declared": ">=0.1.1-rc.2 <0.2.0",
+    "minimum": "0.1.1-rc.2",
+    "ci": ["0.1.1-rc.2", "latest"]
+  },
+  "node": {
+    "declared": ">=22.19.0",
+    "ci": ["22.19.0"]
+  },
+  "checks": [
+    "type-contract",
+    "plugin-install",
+    "web-host-boot",
+    "client-bundle"
+  ]
+}
