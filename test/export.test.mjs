@@ -42,3 +42,13 @@ test('exports redacted JSON and escaped standalone HTML', () => {
   assert.match(svg, /winner: undetermined/)
   assert.match(svg, /1 paired trials/)
 })
+
+test('exports startup failures as an invalid comparison', () => {
+  const baseline = { ...run('before', 'Before'), failure: { phase: 'startup', code: 'NO_MODEL', message: 'has no provider/model' }, metrics: { ...run('before', 'Before').metrics, execution: 'failed' } }
+  const comparison = compareRuns(baseline, run('after', 'After'))
+  const report = createProofReport(comparison)
+  assert.match(report.disclaimer, /Invalid comparison/)
+  assert.match(renderProofHtml(report), /Agent failures/)
+  assert.match(renderProofHtml(report), /has no provider\/model/)
+  assert.match(renderProofSvg(report), /AGENT STARTUP FAILED/)
+})

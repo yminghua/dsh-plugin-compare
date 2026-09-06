@@ -1,8 +1,8 @@
 import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { CompareSessionsResult, ListPresetsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
+import type { CompareSessionsResult, ListModelsResult, ListPresetsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
-import { listUsablePresets, runControlledComparison } from './controlled.ts'
+import { listAvailableModels, listUsablePresets, runControlledComparison } from './controlled.ts'
 
 interface ApiConfig { maxRuns: number; runTimeoutMs: number; checkTimeoutMs: number; maxTrials: number }
 
@@ -93,6 +93,10 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
       }
       if (endpoint === 'presets') {
         const value: ListPresetsResult = { presets: await listUsablePresets(ctx) }
+        return { ok: true, value }
+      }
+      if (endpoint === 'models') {
+        const value: ListModelsResult = await listAvailableModels(ctx)
         return { ok: true, value }
       }
       if (endpoint === 'controlled-run') {

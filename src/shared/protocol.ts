@@ -33,12 +33,32 @@ export interface PresetListItem {
 
 export interface ListPresetsResult { presets: PresetListItem[] }
 
+export interface ModelListItem {
+  id: string
+  name: string
+  description?: string
+}
+
+export interface ModelProviderItem {
+  id: string
+  name: string
+  models: ModelListItem[]
+}
+
+export interface ModelSelection { provider: string; model: string }
+
+export interface ListModelsResult {
+  providers: ModelProviderItem[]
+  defaultSelection?: ModelSelection
+}
+
 export interface ControlledRunDesign {
   sourceDir: string
   isolation: 'filesystem-copy'
   order: 'alternating'
   trials: number
   caveat: string
+  model: ModelSelection
 }
 
 export interface ControlledRunResult extends CompareSessionsResult {

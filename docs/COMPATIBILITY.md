@@ -7,7 +7,7 @@ The machine-readable contract lives in [`compatibility.json`](../compatibility.j
 | Minimum | `0.1.1-rc.2` | Prevent accidentally raising the supported baseline |
 | Latest | `latest` | Detect a newly published compatible DSH build without waiting for a dependency PR |
 
-As checked on 2026-08-27, npm's `latest` and `next` tags both resolve to `0.1.1-rc.2`. The two jobs are intentionally kept separate: they become different automatically when DSH publishes another release.
+As checked on 2026-09-07, npm's `latest` and `next` tags resolve to `0.1.2-rc.1`. The minimum lane remains on `0.1.1-rc.2`, so CI exercises both compatibility boundaries.
 
 Each compatibility job builds the package and runs:
 
@@ -15,6 +15,6 @@ Each compatibility job builds the package and runs:
 pnpm smoke:dsh -- <version-or-tag>
 ```
 
-The smoke script creates a fresh temporary `DSH_HOME`, installs this checkout into the Web profile, boots DSH on an OS-assigned loopback port, verifies that the boot manifest contains `dsh-proof` with the expected client injections, fetches the client bundle, then stops the Host and removes the temporary profile.
+The smoke script creates a fresh temporary `DSH_HOME`, installs this checkout into the Web profile, boots DSH on an OS-assigned loopback port, performs the launch-token/cookie exchange when required by newer DSH versions, verifies that the boot manifest contains `dsh-proof` with the expected client injections, fetches its manifest-declared client bundle, then stops the Host and removes the temporary profile.
 
 Public CI does not run a real model-backed controlled comparison because that would require credentials, consume tokens, and introduce provider noise. The controlled runner itself is covered by deterministic Host tests; model-backed trials remain an explicit local action.

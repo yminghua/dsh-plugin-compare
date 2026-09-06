@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import type { CompareSessionsResult, ControlledRunResult, ListPresetsResult, ListSessionsResult, PresetListItem, SessionListItem } from '../shared/protocol.ts'
+import type { CompareSessionsResult, ControlledRunResult, ListModelsResult, ListPresetsResult, ListSessionsResult, ModelProviderItem, PresetListItem, SessionListItem } from '../shared/protocol.ts'
 import { createProofReport, renderProofHtml, renderProofSvg, sanitizeProofReport, serializeProofReport, type ComparisonEvidence, type ExperimentSummary, type PairedDeltaSummary, type ProofComparison, type RunEvidence } from '../core/index.ts'
 import './types.ts'
 import '../shared/cordis.ts'
@@ -39,6 +39,9 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [open, setOpen] = React.useState(false)
   const [sessions, setSessions] = React.useState<SessionListItem[]>([])
   const [presets, setPresets] = React.useState<PresetListItem[]>([])
+  const [modelProviders, setModelProviders] = React.useState<ModelProviderItem[]>([])
+  const [modelProvider, setModelProvider] = React.useState('')
+  const [modelId, setModelId] = React.useState('')
   const [mode, setMode] = React.useState<'sessions' | 'controlled'>('sessions')
   const [baselineId, setBaselineId] = React.useState('')
   const [candidateId, setCandidateId] = React.useState('')
@@ -59,12 +62,14 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     setBusy(true)
     setError('')
     try {
-      const [result, presetResult] = await Promise.all([
+      const [result, presetResult, modelResult] = await Promise.all([
         rpc<ListSessionsResult>(ctx, 'list', { limit: 100 }),
         rpc<ListPresetsResult>(ctx, 'presets', {}),
+        rpc<ListModelsResult>(ctx, 'models', {}),
       ])
       setSessions(result.sessions)
       setPresets(presetResult.presets)
+      setModelProviders(modelResult.providers)
       const candidate = preferred && result.sessions.some((item) => item.sessionId === preferred)
         ? preferred
         : result.sessions[0]?.sessionId ?? ''
@@ -75,6 +80,13 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
       const usable = presetResult.presets.filter((item) => !item.broken)
       setBaselinePreset(usable[0]?.id ?? '')
       setCandidatePreset(usable[1]?.id ?? usable[0]?.id ?? '')
+      const selectedProvider = modelResult.providers.find((item) => item.id === modelResult.defaultSelection?.provider) ?? modelResult.providers[0]
+      setModelProvider(selectedProvider?.id ?? '')
+      setModelId(selectedProvider
+        ? selectedProvider.id === modelResult.defaultSelection?.provider
+          ? modelResult.defaultSelection?.model ?? selectedProvider.models[0]?.id ?? ''
+          : selectedProvider.models[0]?.id ?? ''
+        : '')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -107,7 +119,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   }, [baselineId, candidateId, ctx])
 
   const runControlled = React.useCallback(async () => {
-    if (!sourceDir || !prompt || !baselinePreset || !candidatePreset) return
+    if (!sourceDir || !prompt || !modelProvider || !modelId || !baselinePreset || !candidatePreset) return
     setBusy(true)
     setError('')
     setComparison(null)
@@ -118,6 +130,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
       const result = await rpc<ControlledRunResult>(ctx, 'controlled-run', {
         sourceDir,
         prompt,
+        model: { provider: modelProvider, model: modelId },
         baseline: { presetId: baselinePreset, presetName: name(baselinePreset) },
         candidate: { presetId: candidatePreset, presetName: name(candidatePreset) },
         trials,
@@ -132,7 +145,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     } finally {
       setBusy(false)
     }
-  }, [baselinePreset, candidatePreset, ctx, presets, prompt, sourceDir, successCommand, trials])
+  }, [baselinePreset, candidatePreset, ctx, modelId, modelProvider, presets, prompt, sourceDir, successCommand, trials])
 
   if (!open) return null
   return React.createElement('section', { className: 'dproof-panel', 'aria-label': 'DSH Proof comparison' },
@@ -159,6 +172,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
       ) : React.createElement(ControlledForm, {
         presets, sourceDir, setSourceDir, prompt, setPrompt, baselinePreset, setBaselinePreset,
         candidatePreset, setCandidatePreset, successCommand, setSuccessCommand, busy,
+        modelProviders, modelProvider, setModelProvider, modelId, setModelId,
         trials, setTrials,
         onRun: () => void runControlled(),
       }),
@@ -184,6 +198,9 @@ interface ControlledFormProps {
   prompt: string; setPrompt: (value: string) => void
   baselinePreset: string; setBaselinePreset: (value: string) => void
   candidatePreset: string; setCandidatePreset: (value: string) => void
+  modelProviders: ModelProviderItem[]
+  modelProvider: string; setModelProvider: (value: string) => void
+  modelId: string; setModelId: (value: string) => void
   successCommand: string; setSuccessCommand: (value: string) => void
   trials: number; setTrials: (value: number) => void
   busy: boolean; onRun: () => void
@@ -197,14 +214,29 @@ function ControlledForm(props: ControlledFormProps): React.ReactElement {
       ...props.presets.map((item) => React.createElement('option', { key: item.id, value: item.id, disabled: Boolean(item.broken) }, `${item.name}${item.broken ? ' · broken' : ''}`)),
     ),
   )
+  const models = props.modelProviders.find((item) => item.id === props.modelProvider)?.models ?? []
+  const selectProvider = (provider: string) => {
+    props.setModelProvider(provider)
+    props.setModelId(props.modelProviders.find((item) => item.id === provider)?.models[0]?.id ?? '')
+  }
   return React.createElement('section', { className: 'dproof-controlled' },
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Source workspace'), React.createElement('input', { value: props.sourceDir, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSourceDir(event.target.value), placeholder: '/absolute/project/path' })),
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Same prompt for both variants'), React.createElement('textarea', { value: props.prompt, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => props.setPrompt(event.target.value), rows: 4 })),
+    React.createElement('div', { className: 'dproof-columns' },
+      React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Model provider'), React.createElement('select', { value: props.modelProvider, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => selectProvider(event.target.value) },
+        React.createElement('option', { value: '' }, 'Select provider'),
+        ...props.modelProviders.map((item) => React.createElement('option', { key: item.id, value: item.id }, item.name)),
+      )),
+      React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Model'),
+        React.createElement('input', { list: 'dproof-model-options', value: props.modelId, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setModelId(event.target.value), placeholder: 'Model id' }),
+        React.createElement('datalist', { id: 'dproof-model-options' }, ...models.map((item) => React.createElement('option', { key: item.id, value: item.id }, item.name))),
+      ),
+    ),
     React.createElement('div', { className: 'dproof-columns' }, preset('Baseline preset', props.baselinePreset, props.setBaselinePreset), preset('Candidate preset', props.candidatePreset, props.setCandidatePreset)),
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Success check command · optional'), React.createElement('input', { value: props.successCommand, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSuccessCommand(event.target.value), placeholder: 'pnpm test' })),
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Paired trials · 1–10'), React.createElement('input', { type: 'number', min: 1, max: 10, value: props.trials, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setTrials(Math.min(10, Math.max(1, Number(event.target.value) || 1))) })),
     React.createElement('div', { className: 'dproof-warning' }, `This explicitly runs ${props.trials * 2} agent session(s), creates fresh copies for every pair, and may consume model tokens. Pair order alternates.`),
-    React.createElement('button', { type: 'button', className: 'dproof-compare', disabled: props.busy || !props.sourceDir || !props.prompt || !props.baselinePreset || !props.candidatePreset, onClick: props.onRun }, props.busy ? `Running ${props.trials} paired trial(s)…` : 'Run controlled A/B'),
+    React.createElement('button', { type: 'button', className: 'dproof-compare', disabled: props.busy || !props.sourceDir || !props.prompt || !props.modelProvider || !props.modelId || !props.baselinePreset || !props.candidatePreset, onClick: props.onRun }, props.busy ? `Running ${props.trials} paired trial(s)…` : 'Run controlled A/B'),
   )
 }
 
@@ -238,9 +270,18 @@ function ComparisonView({ comparison, evidence, caveat, experiment }: { comparis
   ]
   return React.createElement('div', { className: 'dproof-results' },
     React.createElement('div', { className: 'dproof-verdict' },
-      React.createElement('strong', null, comparison.baseline.metrics.outcome === 'unknown' && comparison.candidate.metrics.outcome === 'unknown' ? 'Task outcome: undetermined' : `Explicit check: ${comparison.baseline.metrics.outcome} → ${comparison.candidate.metrics.outcome}`),
+      React.createElement('strong', null, comparison.baseline.failure?.phase === 'startup' || comparison.candidate.failure?.phase === 'startup'
+        ? 'Invalid comparison: Agent startup failed'
+        : comparison.baseline.metrics.outcome === 'unknown' && comparison.candidate.metrics.outcome === 'unknown' ? 'Task outcome: undetermined' : `Explicit check: ${comparison.baseline.metrics.outcome} → ${comparison.candidate.metrics.outcome}`),
       React.createElement('span', null, caveat || 'A completed run is not proof that the task succeeded.'),
     ),
+    comparison.baseline.failure || comparison.candidate.failure ? React.createElement('section', { className: 'dproof-section' },
+      React.createElement('div', { className: 'dproof-section-head' }, React.createElement('strong', null, 'Agent failures')),
+      React.createElement('div', { className: 'dproof-diffs' },
+        React.createElement(FailureView, { label: 'Baseline', failure: safe.comparison.baseline.failure }),
+        React.createElement(FailureView, { label: 'Candidate', failure: safe.comparison.candidate.failure }),
+      ),
+    ) : null,
     experiment ? React.createElement(ExperimentView, { summary: experiment }) : null,
     React.createElement('div', { className: 'dproof-table' },
       React.createElement('div', { className: 'dproof-row dproof-row-head' },
@@ -362,6 +403,14 @@ function CheckView({ label, check }: { label: string; check: ProofComparison['ba
     React.createElement('b', null, `${label} · ${check.status}`),
     React.createElement('code', null, check.command),
     check.output ? React.createElement('pre', null, check.output) : null,
+  )
+}
+
+function FailureView({ label, failure }: { label: string; failure: ProofComparison['baseline']['failure'] }): React.ReactElement {
+  if (!failure) return React.createElement('div', { className: 'dproof-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dproof-muted' }, 'No Agent failure recorded'))
+  return React.createElement('div', { className: 'dproof-diff-list dproof-failure' },
+    React.createElement('b', null, `${label} · ${failure.phase} failure${failure.code ? ` · ${failure.code}` : ''}`),
+    React.createElement('pre', null, failure.message),
   )
 }
 

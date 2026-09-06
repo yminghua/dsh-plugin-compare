@@ -58,6 +58,8 @@ export function injectStyles(): void {
 .dproof-diff-list details { min-width:0; font-size:11px; }
 .dproof-diff-list summary { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
 .dproof-diff-list pre { max-height:140px; overflow:auto; white-space:pre-wrap; font:10px/1.4 ui-monospace,monospace; }
+.dproof-failure { border:1px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 35%,transparent); }
+.dproof-failure>b { color:var(--dsw-alias-state-error-primary); }
 .dproof-manifest { color:var(--dsw-alias-label-tertiary); font-size:10px; }
 @media (max-width:700px) { .dproof-columns,.dproof-timelines,.dproof-diffs { grid-template-columns:1fr; } }
 `

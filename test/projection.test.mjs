@@ -20,3 +20,16 @@ test('projects measured session facts without inventing task success', () => {
   assert.equal(run.provider, 'deepseek')
   assert.equal(run.model, 'v4')
 })
+
+test('projects structured pre-response errors as startup failures', () => {
+  const run = projectSession({
+    id: 'failed', title: 'Failed run', createdAt: 1000,
+    events: [
+      { seq: 0, type: 'turn/start', time: 1000, data: { turn: 1 } },
+      { seq: 1, type: 'step/start', time: 1010, data: { turn: 1, step: 1 } },
+      { seq: 2, type: 'turn/end', time: 1040, data: { turn: 1, reason: { kind: 'error', error: { code: 'NO_MODEL', message: 'has no provider/model' } } } },
+    ],
+  })
+  assert.equal(run.metrics.execution, 'failed')
+  assert.deepEqual(run.failure, { phase: 'startup', code: 'NO_MODEL', message: 'has no provider/model' })
+})

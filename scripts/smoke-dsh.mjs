@@ -24,10 +24,17 @@ try {
   server.stderr.on('data', collect)
   try {
     const url = await waitForUrl(server, () => output, 120_000)
-    const [index, client] = await Promise.all([
-      fetchText(`${url}/`),
-      fetchText(`${url}/plugins/dsh-proof/client.js`),
-    ])
+    const browser = await openIndex(url)
+    const index = browser.index
+    const clientUrl = pluginClientUrl(url, index)
+    let client
+    try {
+      client = await fetchText(clientUrl, browser.cookie)
+    } catch (error) {
+      const at = index.indexOf('dsh-proof')
+      const fragment = at < 0 ? index.slice(0, 800) : index.slice(Math.max(0, at - 300), at + 600)
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\nDSH boot fragment:\n${fragment}`)
+    }
     if (!index.includes('"id":"dsh-proof"')) throw new Error('DSH boot manifest does not include dsh-proof')
     if (!index.includes('"inject":["connection","slots"]')) throw new Error('DSH boot manifest has unexpected dsh-proof client injections')
     if (!client.includes('DSH Proof')) throw new Error('dsh-proof client bundle is missing its UI marker')
@@ -60,7 +67,7 @@ function waitForUrl(server, output, timeoutMs) {
   return new Promise((resolvePromise, reject) => {
     const started = Date.now()
     const inspect = () => {
-      const match = output().match(/dsh web: (http:\/\/127\.0\.0\.1:\d+)/)
+      const match = output().match(/dsh web: (http:\/\/127\.0\.0\.1:\d+\/?(?:\?token=[^\s]+)?)/)
       if (match?.[1]) return resolvePromise(match[1])
       if (server.exitCode !== null) return reject(new Error(`DSH Web exited before listening\n${output()}`))
       if (Date.now() - started >= timeoutMs) return reject(new Error(`Timed out waiting for DSH Web\n${output()}`))
@@ -70,21 +77,55 @@ function waitForUrl(server, output, timeoutMs) {
   })
 }
 
-async function fetchText(url) {
-  const response = await fetch(url)
+function endpoint(base, pathname) {
+  const url = new URL(base)
+  url.pathname = pathname
+  url.search = ''
+  return url.href
+}
+
+function pluginClientUrl(base, index) {
+  const marker = 'globalThis["__DSH_BOOT__"] = '
+  const start = index.indexOf(marker)
+  const end = start < 0 ? -1 : index.indexOf('</script>', start)
+  if (end > start) {
+    const source = index.slice(start + marker.length, end).trim().replace(/;$/, '')
+    const boot = JSON.parse(source)
+    const entry = Array.isArray(boot.entries) ? boot.entries.find((item) => item?.id === 'dsh-proof') : undefined
+    if (typeof entry?.url === 'string') return new URL(entry.url, base).href
+  }
+  return endpoint(base, '/plugins/dsh-proof/client.js')
+}
+
+async function openIndex(url) {
+  const launch = await fetch(url, { redirect: 'manual' })
+  if (launch.status >= 300 && launch.status < 400) {
+    const cookie = launch.headers.get('set-cookie')?.split(';', 1)[0]
+    const location = launch.headers.get('location')
+    if (!cookie || !location) throw new Error(`DSH launch-token exchange returned HTTP ${launch.status} without a session cookie and redirect`)
+    return { index: await fetchText(new URL(location, url).href, cookie), cookie }
+  }
+  if (!launch.ok) throw new Error(`${url} returned HTTP ${launch.status}`)
+  return { index: await launch.text(), cookie: undefined }
+}
+
+async function fetchText(url, cookie) {
+  const response = await fetch(url, cookie ? { headers: { cookie } } : undefined)
   if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`)
   return response.text()
 }
 
 async function stop(child) {
-  if (child.exitCode !== null) return
+  if (child.exitCode !== null || child.signalCode !== null) return
+  const exited = new Promise((resolvePromise) => child.once('exit', resolvePromise))
   child.kill('SIGINT')
   await Promise.race([
-    new Promise((resolvePromise) => child.once('exit', resolvePromise)),
+    exited,
     new Promise((resolvePromise) => setTimeout(resolvePromise, 5_000)),
   ])
-  if (child.exitCode === null) {
+  if (child.exitCode === null && child.signalCode === null) {
+    const killed = new Promise((resolvePromise) => child.once('exit', resolvePromise))
     child.kill('SIGKILL')
-    await new Promise((resolvePromise) => child.once('exit', resolvePromise))
+    await killed
   }
 }

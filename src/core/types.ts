@@ -30,9 +30,16 @@ export interface ProofRun {
   cwd?: string
   model?: string
   provider?: string
+  failure?: RunFailure
   capturedAt: string
   metrics: RunMetrics
   check?: ExplicitCheckResult
+}
+
+export interface RunFailure {
+  phase: 'startup' | 'execution'
+  message: string
+  code?: string
 }
 
 export interface ExplicitCheckResult {

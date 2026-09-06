@@ -8,6 +8,7 @@ export interface ControlledVariantInput {
 export interface ControlledRunInput {
   sourceDir: string
   prompt: string
+  model: { provider: string; model: string }
   baseline: ControlledVariantInput
   candidate: ControlledVariantInput
   successCommand?: string
@@ -30,11 +31,20 @@ export function validateControlledRunInput(value: unknown, maxTrials = 10): Cont
   const input = record(value, 'request')
   const sourceDir = boundedString(input.sourceDir, 'sourceDir', 4096)
   const prompt = boundedString(input.prompt, 'prompt', 100_000)
+  const model = modelTarget(input.model)
   const baseline = variant(input.baseline, 'baseline')
   const candidate = variant(input.candidate, 'candidate')
   const successCommand = optionalBoundedString(input.successCommand, 'successCommand', 20_000)
   const trials = positiveInteger(input.trials, 'trials', 1, maxTrials)
-  return { sourceDir, prompt, baseline, candidate, trials, ...(successCommand ? { successCommand } : {}) }
+  return { sourceDir, prompt, model, baseline, candidate, trials, ...(successCommand ? { successCommand } : {}) }
+}
+
+function modelTarget(value: unknown): ControlledRunInput['model'] {
+  const input = record(value, 'model')
+  return {
+    provider: boundedString(input.provider, 'model.provider', 200),
+    model: boundedString(input.model, 'model.model', 500),
+  }
 }
 
 function variant(value: unknown, field: string): ControlledVariantInput {

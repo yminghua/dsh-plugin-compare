@@ -23,6 +23,7 @@ test('controlled facts keep execution and explicit success judgment separate', (
 test('validates bounded controlled-run requests', () => {
   const result = validateControlledRunInput({
     sourceDir: '/tmp/project', prompt: 'Fix it',
+    model: { provider: 'deepseek', model: 'deepseek-chat' },
     baseline: { presetId: 'base', presetName: 'Base' },
     candidate: { presetId: 'plugin', presetName: 'Plugin' },
     successCommand: 'pnpm test',
@@ -32,8 +33,13 @@ test('validates bounded controlled-run requests', () => {
   assert.throws(() => validateControlledRunInput({}), /Missing sourceDir/)
   assert.throws(() => validateControlledRunInput({
     sourceDir: '/tmp/project', prompt: 'Fix it', trials: 11,
+    model: { provider: 'deepseek', model: 'deepseek-chat' },
     baseline: { presetId: 'base', presetName: 'Base' }, candidate: { presetId: 'plugin', presetName: 'Plugin' },
   }), /trials must be an integer/)
+  assert.throws(() => validateControlledRunInput({
+    sourceDir: '/tmp/project', prompt: 'Fix it',
+    baseline: { presetId: 'base', presetName: 'Base' }, candidate: { presetId: 'plugin', presetName: 'Plugin' },
+  }), /Invalid model/)
 })
 
 test('summarizes paired trials with uncertainty instead of choosing a winner', () => {

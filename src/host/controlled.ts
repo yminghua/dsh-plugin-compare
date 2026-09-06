@@ -19,8 +19,9 @@ import {
   type GitSnapshotEvidence,
   type ProofComparison,
   type RunEvidence,
+  type RunFailure,
 } from '../core/index.ts'
-import type { ControlledRunResult, PresetListItem } from '../shared/protocol.ts'
+import type { ControlledRunResult, ListModelsResult, ModelSelection, PresetListItem } from '../shared/protocol.ts'
 import type { HostContext } from './services.ts'
 
 const execFileAsync = promisify(execFile)
@@ -42,6 +43,23 @@ export async function listUsablePresets(ctx: HostContext): Promise<PresetListIte
     ...(preset.description ? { description: preset.description } : {}),
     ...(preset.broken ? { broken: preset.broken } : {}),
   }))
+}
+
+export async function listAvailableModels(ctx: HostContext): Promise<ListModelsResult> {
+  const providers = await Promise.all(ctx.llm.listProviders().map(async (provider) => ({
+    id: provider.id,
+    name: provider.name,
+    models: (await ctx.llm.listModels(provider.id)).map((model) => ({
+      id: model.id,
+      name: model.name,
+      ...(model.description ? { description: model.description } : {}),
+    })),
+  })))
+  const service = (ctx as unknown as {
+    agentDefaultModel?: { currentSelection(): ModelSelection | undefined }
+  }).agentDefaultModel
+  const defaultSelection = service?.currentSelection()
+  return { providers, ...(defaultSelection ? { defaultSelection } : {}) }
 }
 
 export async function runControlledComparison(
@@ -69,11 +87,11 @@ export async function runControlledComparison(
         let baseline: VariantResult
         let candidate: VariantResult
         if (index % 2 === 0) {
-          baseline = await runVariant(ctx, baselineDir, input.prompt, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
-          candidate = await runVariant(ctx, candidateDir, input.prompt, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+          baseline = await runVariant(ctx, baselineDir, input.prompt, input.model, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
+          candidate = await runVariant(ctx, candidateDir, input.prompt, input.model, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
         } else {
-          candidate = await runVariant(ctx, candidateDir, input.prompt, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
-          baseline = await runVariant(ctx, baselineDir, input.prompt, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
+          candidate = await runVariant(ctx, candidateDir, input.prompt, input.model, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+          baseline = await runVariant(ctx, baselineDir, input.prompt, input.model, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
         }
         comparisons.push(compareRuns(baseline.run, candidate.run))
         firstEvidence ??= comparisonEvidence(baseline.evidence, candidate.evidence)
@@ -83,6 +101,7 @@ export async function runControlledComparison(
     }
     const comparison = comparisons[0]
     if (!comparison || !firstEvidence) throw new Error('Controlled run produced no trials')
+    const hasStartupFailure = comparisons.some((trial) => trial.baseline.failure?.phase === 'startup' || trial.candidate.failure?.phase === 'startup')
     return {
       comparison,
       evidence: firstEvidence,
@@ -93,7 +112,10 @@ export async function runControlledComparison(
         isolation: 'filesystem-copy',
         order: 'alternating',
         trials: input.trials,
-        caveat: input.trials < 2
+        model: input.model,
+        caveat: hasStartupFailure
+          ? 'Invalid comparison: at least one Agent failed before task execution. Fix the reported startup error before evaluating presets.'
+          : input.trials < 2
           ? 'A single sequential pair is measured evidence, not a statistically reliable ranking.'
           : 'Execution order alternates by pair. Intervals quantify observed variation but do not establish causality.',
       },
@@ -138,6 +160,7 @@ async function runVariant(
   ctx: HostContext,
   cwd: string,
   prompt: string,
+  model: ModelSelection,
   presetId: string,
   presetName: string,
   successCommand: string | undefined,
@@ -148,20 +171,24 @@ async function runVariant(
   const preset = await ctx.agentPresets.resolve(presetId)
   if (preset.broken) throw new Error(`Preset "${presetId}" is broken: ${preset.broken}`)
   const sessionId = SessionId(`dsh-proof-${randomUUID()}`)
-  const handle = await ctx.agents.create({
-    sessionId,
-    meta: { cwd, agentPreset: preset.id },
-    setup: async (agentCtx) => { await ctx.agentPresets.mount(agentCtx, preset.id) },
-    ...(signal ? { signal } : {}),
-  })
+  const started = Date.now()
+  let handle: Awaited<ReturnType<HostContext['agents']['create']>>
+  try {
+    handle = await ctx.agents.create({
+      sessionId,
+      meta: { cwd, agentPreset: preset.id },
+      agentOptions: model,
+      setup: async (agentCtx) => { await ctx.agentPresets.mount(agentCtx, preset.id) },
+      ...(signal ? { signal } : {}),
+    })
+  } catch (error) {
+    return startupFailureResult(sessionId, cwd, presetName, model, successCommand, error, started, await captureGit(cwd, config.checkTimeoutMs))
+  }
   try {
     handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: prompt }], source: { kind: 'user' } }))
     const timedOut = await waitForIdle(handle.agent, config.runTimeoutMs, signal)
     await ctx.sessions.flush(handle.agent.session)
     const git = await captureGit(cwd, config.checkTimeoutMs)
-    const check = timedOut
-      ? timeoutCheck(successCommand)
-      : successCommand ? await runCheck(cwd, successCommand, config.checkTimeoutMs) : undefined
     const projected = projectSession({
       id: sessionId,
       title: `${presetName} · controlled`,
@@ -169,12 +196,71 @@ async function runVariant(
       cwd,
       events: handle.agent.session.events,
     })
-    const run = applyControlledFacts(projected, check, git)
+    const routed = {
+      ...projected,
+      provider: projected.provider ?? model.provider,
+      model: projected.model ?? model.model,
+    }
+    const check = timedOut
+      ? timeoutCheck(successCommand)
+      : routed.metrics.execution !== 'completed'
+        ? skippedCheck(successCommand, routed.failure)
+        : successCommand ? await runCheck(cwd, successCommand, config.checkTimeoutMs) : undefined
+    const run = applyControlledFacts(routed, check, git)
     const evidence: RunEvidence = { ...projectSessionEvidence(sessionId, handle.agent.session.events), git }
     return { run, evidence }
   } finally {
     await handle.dispose()
   }
+}
+
+function startupFailureResult(
+  sessionId: ReturnType<typeof SessionId>,
+  cwd: string,
+  presetName: string,
+  model: ModelSelection,
+  successCommand: string | undefined,
+  error: unknown,
+  started: number,
+  git: GitSnapshotEvidence,
+): VariantResult {
+  const failure = failureDetails(error)
+  const run = applyControlledFacts({
+    id: sessionId,
+    label: `${presetName} · controlled`,
+    sessionId,
+    cwd,
+    provider: model.provider,
+    model: model.model,
+    capturedAt: new Date(started).toISOString(),
+    failure,
+    metrics: {
+      outcome: 'unknown', execution: 'failed', durationMs: Math.max(0, Date.now() - started), turns: 0, steps: 0,
+      toolCalls: 0, failedToolCalls: 0, retries: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    },
+  }, skippedCheck(successCommand, failure), git)
+  const evidence: RunEvidence = {
+    sessionId,
+    timeline: [{ seq: 0, time: started, elapsedMs: 0, type: 'agent/startup-error', lane: 'system', status: 'failed', label: `Startup failed · ${failure.message}` }],
+    fileDiffs: [],
+    git,
+  }
+  return { run, evidence }
+}
+
+function failureDetails(error: unknown): RunFailure {
+  if (error instanceof Error) {
+    const candidate = error as Error & { code?: unknown }
+    const code = typeof candidate.code === 'string' ? candidate.code : undefined
+    return { phase: 'startup', message: error.message, ...(code ? { code } : {}) }
+  }
+  return { phase: 'startup', message: String(error) }
+}
+
+function skippedCheck(command: string | undefined, failure?: RunFailure): ExplicitCheckResult | undefined {
+  if (!command) return undefined
+  const reason = failure ? `${failure.phase} failure: ${failure.message}` : 'the Agent did not complete successfully'
+  return { command, status: 'not-run', exitCode: null, durationMs: 0, output: `Not run because of ${reason}.` }
 }
 
 async function waitForIdle(agent: Agent, timeoutMs: number, signal?: AbortSignal): Promise<boolean> {

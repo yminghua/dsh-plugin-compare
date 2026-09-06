@@ -29,9 +29,11 @@ function presentation(event: ProofEvent): { lane: TimelineLane; status: Timeline
   switch (event.type) {
     case 'turn/start': return { lane: 'turn', status: 'start', label: `Turn ${number(data?.turn) ?? ''} started`.replace('  ', ' ') }
     case 'turn/end': {
-      const kind = object(data?.reason)?.kind
+      const reason = object(data?.reason)
+      const kind = reason?.kind
       const status: TimelineStatus = kind === 'completed' ? 'complete' : kind === 'error' || kind === 'max-tokens' ? 'failed' : 'info'
-      return { lane: 'turn', status, label: `Turn ended · ${typeof kind === 'string' ? kind : 'unknown'}` }
+      const message = typeof object(reason?.error)?.message === 'string' ? object(reason?.error)?.message as string : undefined
+      return { lane: 'turn', status, label: message ? `Turn ended · ${message}` : `Turn ended · ${typeof kind === 'string' ? kind : 'unknown'}` }
     }
     case 'step/start': return { lane: 'model', status: 'start', label: `Step ${number(data?.step) ?? ''} started`.replace('  ', ' ') }
     case 'step/end': return { lane: 'model', status: 'complete', label: `Step ${number(data?.step) ?? ''} completed`.replace('  ', ' ') }

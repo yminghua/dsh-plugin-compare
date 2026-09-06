@@ -1,4 +1,4 @@
-import type { ExecutionStatus, ProofRun, TokenUsage } from './types.ts'
+import type { ExecutionStatus, ProofRun, RunFailure, TokenUsage } from './types.ts'
 import { fileDiffsFromEvent } from './evidence.ts'
 
 export interface ProofEvent {
@@ -41,6 +41,17 @@ function textField(value: unknown): string | undefined {
   return typeof value === 'string' && value !== '' ? value : undefined
 }
 
+function failureFromReason(reason: unknown, startup: boolean): RunFailure | undefined {
+  if (!reason || typeof reason !== 'object') return undefined
+  const candidate = reason as Record<string, unknown>
+  if (candidate.kind !== 'error' || !candidate.error || typeof candidate.error !== 'object') return undefined
+  const error = candidate.error as Record<string, unknown>
+  const message = textField(error.message)
+  if (!message) return undefined
+  const code = textField(error.code)
+  return { phase: startup ? 'startup' : 'execution', message, ...(code ? { code } : {}) }
+}
+
 export function projectSession(input: SessionProjectionInput): ProofRun {
   let turns = 0
   let steps = 0
@@ -54,6 +65,8 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
   let execution: ExecutionStatus = 'unknown'
   let model: string | undefined
   let provider: string | undefined
+  let assistantMessages = 0
+  let failure: RunFailure | undefined
   const changedPaths = new Set<string>()
   const tokens: TokenUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 
@@ -77,6 +90,7 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
         if (activeTurnStart !== undefined && event.time >= activeTurnStart) activeDurationMs += event.time - activeTurnStart
         activeTurnStart = undefined
         execution = executionFromReason(data?.reason)
+        failure = failureFromReason(data?.reason, assistantMessages === 0 && toolCalls === 0) ?? failure
         break
       case 'step/start':
         steps += 1
@@ -91,6 +105,7 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
         retries += 1
         break
       case 'assistant/message': {
+        assistantMessages += 1
         const usage = data?.usage as UsageLike | undefined
         if (usage !== undefined) {
           tokens.input += finiteNumber(usage.inputTokens)
@@ -126,6 +141,7 @@ export function projectSession(input: SessionProjectionInput): ProofRun {
     ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
     ...(model !== undefined ? { model } : {}),
     ...(provider !== undefined ? { provider } : {}),
+    ...(failure !== undefined ? { failure } : {}),
     metrics: {
       outcome: 'unknown',
       execution,

@@ -6,7 +6,7 @@ import './host/services.ts'
 import './shared/cordis.ts'
 
 export const name = 'dsh-proof'
-export const inject = ['connection', 'sessionQuery', 'agents', 'sessions', 'agentPresets']
+export const inject = ['connection', 'sessionQuery', 'agents', 'sessions', 'agentPresets', 'llm']
 
 export interface Config {
   maxRuns?: number
