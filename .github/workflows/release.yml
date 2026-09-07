@@ -42,8 +42,6 @@ jobs:
           else
             npm publish --provenance --tag "${{ steps.npm-dist-tag.outputs.tag }}"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   github-release:
     needs: publish

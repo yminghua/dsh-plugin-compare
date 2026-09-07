@@ -5,15 +5,13 @@ Releases are published to the public npm registry by `.github/workflows/release.
 ## Prerequisites
 
 - The GitHub repository is public and has the `dsh-plugin` topic. Public visibility is also required for npm provenance and ecosystem indexing.
-- The GitHub repository has an `NPM_TOKEN` repository secret with publish access.
+- The npm package has a trusted GitHub Actions publisher configured as described below.
 - `main` is green for both the minimum and latest DSH compatibility lanes.
 - Public example artifacts have been reviewed for credentials, account data, and machine-local paths.
 
-For the first npm release, create a write-capable npm token for the package owner and save it at GitHub **Settings → Secrets and variables → Actions → New repository secret** with the exact name `NPM_TOKEN`. GitHub only exposes the secret name after creation, never its value. After the package exists, migrate to npm trusted publishing when practical so the release uses short-lived OIDC credentials instead of a long-lived write token.
+### Trusted publishing
 
-### Migrate to trusted publishing
-
-After the first release creates the npm package, open its npm **Settings → Trusted publishing**, add a GitHub Actions publisher, and enter these values exactly:
+The npm package's **Settings → Trusted publishing** page must contain a GitHub Actions publisher with these values:
 
 - Organization or user: `yminghua`
 - Repository: `dsh-plugin-compare`
@@ -21,7 +19,7 @@ After the first release creates the npm package, open its npm **Settings → Tru
 - Environment: leave blank
 - Allowed actions: enable direct `npm publish`
 
-The release workflow grants `id-token: write`, installs an OIDC-capable npm CLI, and uses `npm publish`. Keep `NPM_TOKEN` only during the migration. After the trusted publisher is saved, remove `NODE_AUTH_TOKEN` from the workflow, verify the next release through OIDC, then delete the GitHub secret and revoke the npm token.
+The release workflow grants `id-token: write`, installs an OIDC-capable npm CLI, and uses `npm publish` without `NODE_AUTH_TOKEN`. Public dependency installation and metadata checks need no registry token. npm exchanges the GitHub Actions OIDC identity for short-lived publish credentials, so the repository does not need an `NPM_TOKEN` secret.
 
 The workflow selects npm dist-tags from the package version: versions containing a prerelease suffix publish to `next`; stable versions publish to `latest`. npm requires every package document to retain a `latest` tag, so when the first and only published version is a prerelease, npm assigns both `next` and `latest` to it and rejects removal of `latest`. Accept this bootstrap state rather than publishing a fake stable placeholder. The first stable release moves `latest` to the stable version; later prereleases update only `next`. Never deliberately publish an alpha, beta, or release candidate with `--tag latest`.
 

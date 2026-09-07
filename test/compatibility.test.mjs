@@ -17,12 +17,13 @@ test('compatibility manifest stays aligned with package and CI', () => {
   assert.match(ciWorkflow, /scripts\/smoke-dsh\.mjs/)
 })
 
-test('release workflow selects next for prereleases and latest for stable versions', () => {
+test('release workflow uses trusted publishing and selects the correct dist-tag', () => {
+  assert.match(releaseWorkflow, /id-token: write/)
   assert.match(releaseWorkflow, /version\.includes\("-"\) \? "next" : "latest"/)
   assert.match(releaseWorkflow, /npm install --global npm@11\.16\.0/)
   assert.match(releaseWorkflow, /npm publish --provenance --tag "\$\{\{ steps\.npm-dist-tag\.outputs\.tag \}\}"/)
   assert.match(releaseWorkflow, /is already published; skipping npm publish/)
   assert.match(releaseWorkflow, /gh release create "\$GITHUB_REF_NAME"/)
   assert.match(releaseWorkflow, /args\+=\(--prerelease\)/)
-  assert.match(releaseWorkflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/)
+  assert.doesNotMatch(releaseWorkflow, /NPM_TOKEN|NODE_AUTH_TOKEN/)
 })
