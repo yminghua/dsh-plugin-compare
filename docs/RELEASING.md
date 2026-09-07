@@ -11,7 +11,7 @@ Releases are published to the public npm registry by `.github/workflows/release.
 
 For the first npm release, create a write-capable npm token for the package owner and save it at GitHub **Settings → Secrets and variables → Actions → New repository secret** with the exact name `NPM_TOKEN`. GitHub only exposes the secret name after creation, never its value. After the package exists, migrate to npm trusted publishing when practical so the release uses short-lived OIDC credentials instead of a long-lived write token.
 
-The workflow selects npm dist-tags from the package version: versions containing a prerelease suffix publish to `next`; stable versions publish to `latest`. npm may create `latest` automatically for the first package version even when another tag was requested, so the workflow removes `latest` only when it points to the prerelease it just published. Never publish an alpha, beta, or release candidate as `latest`.
+The workflow selects npm dist-tags from the package version: versions containing a prerelease suffix publish to `next`; stable versions publish to `latest`. npm may create `latest` automatically for the first package version even when another tag was requested. If that first version is a prerelease, a maintainer must remove the accidental tag interactively with `npm dist-tag rm <package> latest`; npm protects `latest`, so the CI publishing token cannot perform this cleanup. Never publish an alpha, beta, or release candidate as `latest`.
 
 ## Prepare a release
 
