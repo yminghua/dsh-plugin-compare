@@ -1,8 +1,9 @@
-import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
+import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, validateControlledRunInput, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { CompareSessionsResult, ListModelsResult, ListPresetsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
 import { listAvailableModels, listUsablePresets, runControlledComparison } from './controlled.ts'
+import { ProgressStore } from './progress.ts'
 
 interface ApiConfig { maxRuns: number; runTimeoutMs: number; checkTimeoutMs: number; maxTrials: number }
 
@@ -58,10 +59,11 @@ function sessionIdFrom(value: unknown, field: string): string {
 }
 
 function errorResult(error: unknown): RpcResult<never> {
-  return { ok: false, error: { code: 'dsh_proof_error', message: error instanceof Error ? error.message : String(error) } }
+  return { ok: false, error: { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} } }
 }
 
 export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
+  const progress = new ProgressStore()
   ctx.effect(() => ctx.connection.rpc.handle('/dsh-proof', async (endpoint, payload, signal) => {
     try {
       if (endpoint === 'list') {
@@ -99,8 +101,23 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
         const value: ListModelsResult = await listAvailableModels(ctx)
         return { ok: true, value }
       }
+      if (endpoint === 'controlled-progress') {
+        return { ok: true, value: progress.read(sessionIdFrom(payload, 'runId')) }
+      }
       if (endpoint === 'controlled-run') {
-        return { ok: true, value: await runControlledComparison(ctx, payload, config, signal) }
+        const input = validateControlledRunInput(payload, config.maxTrials)
+        const runId = (payload as Record<string, unknown>).runId
+        const update = runId === undefined ? undefined : progress.start(sessionIdFrom(payload, 'runId'), input.trials, {
+          runTimeoutMs: config.runTimeoutMs, checkTimeoutMs: config.checkTimeoutMs,
+        })
+        try {
+          const value = await runControlledComparison(ctx, payload, config, signal, update)
+          update?.({ phase: 'completed' })
+          return { ok: true, value }
+        } catch (error) {
+          update?.({ phase: 'failed' })
+          throw error
+        }
       }
       return errorResult(new Error(`Unknown endpoint: ${endpoint}`))
     } catch (error) {

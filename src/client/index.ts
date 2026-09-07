@@ -1,11 +1,13 @@
 import React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import type { CompareSessionsResult, ControlledRunResult, ListModelsResult, ListPresetsResult, ListSessionsResult, ModelProviderItem, PresetListItem, SessionListItem } from '../shared/protocol.ts'
+import type { CompareSessionsResult, ControlledRunResult, ControlledProgress, ModelProviderItem, PresetListItem, SessionListItem } from '../shared/protocol.ts'
 import { createProofReport, renderProofHtml, renderProofSvg, sanitizeProofReport, serializeProofReport, type ComparisonEvidence, type ExperimentSummary, type PairedDeltaSummary, type ProofComparison, type RunEvidence } from '../core/index.ts'
 import './types.ts'
 import '../shared/cordis.ts'
 import { injectStyles } from './styles.ts'
 import { requestProofPanel, subscribeProofPanel } from './ui-state.ts'
+import { loadProofOptions, rpc } from './options.ts'
+import { RunProgressView, watchProgress } from './progress.ts'
 
 export const inject = ['connection', 'slots']
 
@@ -27,12 +29,6 @@ function ProofAction(props: { sessionId?: string }): React.ReactElement {
     className: 'dproof-button',
     onClick: () => requestProofPanel(props.sessionId),
   }, 'Proof')
-}
-
-async function rpc<T>(ctx: Context, endpoint: string, payload: unknown): Promise<T> {
-  const response = await ctx.connection.rpc.call('/dsh-proof', endpoint, payload)
-  if (!response.ok) throw new Error(response.error.message ?? 'DSH Proof request failed')
-  return response.value as T
 }
 
 function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
@@ -57,16 +53,24 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [experiment, setExperiment] = React.useState<ExperimentSummary | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [runProgress, setRunProgress] = React.useState<ControlledProgress | null>(null)
+  const [runStartedAt, setRunStartedAt] = React.useState(0)
+  const [progressReceivedAt, setProgressReceivedAt] = React.useState(0)
+  const [progressIssue, setProgressIssue] = React.useState('')
+  const activeRun = React.useRef(false)
+  const stopProgress = React.useRef<(() => void) | null>(null)
+  React.useEffect(() => () => stopProgress.current?.(), [])
 
   const loadSessions = React.useCallback(async (preferred?: string) => {
     setBusy(true)
     setError('')
     try {
-      const [result, presetResult, modelResult] = await Promise.all([
-        rpc<ListSessionsResult>(ctx, 'list', { limit: 100 }),
-        rpc<ListPresetsResult>(ctx, 'presets', {}),
-        rpc<ListModelsResult>(ctx, 'models', {}),
-      ])
+      const loaded = await loadProofOptions(ctx)
+      // A failed resource must not discard successful resources or retain stale choices.
+      const result = loaded.sessions.status === 'fulfilled' ? loaded.sessions.value : { sessions: [] }
+      const presetResult = loaded.presets.status === 'fulfilled' ? loaded.presets.value : { presets: [] }
+      const modelResult = loaded.models.status === 'fulfilled' ? loaded.models.value : { providers: [], defaultSelection: undefined }
+      setError(loaded.errors.join('\n'))
       setSessions(result.sessions)
       setPresets(presetResult.presets)
       setModelProviders(modelResult.providers)
@@ -96,6 +100,8 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
 
   React.useEffect(() => subscribeProofPanel((request) => {
     setOpen(true)
+    if (activeRun.current) return
+    setRunStartedAt(0)
     setComparison(null)
     setEvidence(null)
     setDesignCaveat('')
@@ -119,7 +125,17 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   }, [baselineId, candidateId, ctx])
 
   const runControlled = React.useCallback(async () => {
-    if (!sourceDir || !prompt || !modelProvider || !modelId || !baselinePreset || !candidatePreset) return
+    if (activeRun.current || !sourceDir || !prompt || !modelProvider || !modelId || !baselinePreset || !candidatePreset) return
+    activeRun.current = true
+    const runId = crypto.randomUUID()
+    setRunStartedAt(Date.now())
+    setProgressReceivedAt(Date.now())
+    setRunProgress(null)
+    setProgressIssue('')
+    stopProgress.current = watchProgress(ctx, runId, (value) => {
+      setRunProgress(value)
+      setProgressReceivedAt(Date.now())
+    }, setProgressIssue)
     setBusy(true)
     setError('')
     setComparison(null)
@@ -128,6 +144,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     try {
       const name = (id: string) => presets.find((item) => item.id === id)?.name ?? id
       const result = await rpc<ControlledRunResult>(ctx, 'controlled-run', {
+        runId,
         sourceDir,
         prompt,
         model: { provider: modelProvider, model: modelId },
@@ -140,9 +157,14 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
       setEvidence(result.evidence)
       setDesignCaveat(result.design.caveat)
       setExperiment(result.summary)
+      setRunStartedAt(0)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
+      activeRun.current = false
+      stopProgress.current?.()
+      stopProgress.current = null
+      setRunStartedAt(0)
       setBusy(false)
     }
   }, [baselinePreset, candidatePreset, ctx, modelId, modelProvider, presets, prompt, sourceDir, successCommand, trials])
@@ -156,9 +178,10 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     ),
     React.createElement('div', { className: 'dproof-body' },
       React.createElement('div', { className: 'dproof-tabs' },
-        tab('Existing sessions', mode === 'sessions', () => { setMode('sessions'); setComparison(null); setEvidence(null); setExperiment(null) }),
-        tab('Controlled A/B', mode === 'controlled', () => { setMode('controlled'); setComparison(null); setEvidence(null); setExperiment(null) }),
+        tab('Existing sessions', mode === 'sessions', () => { setMode('sessions'); setComparison(null); setEvidence(null); setExperiment(null) }, busy),
+        tab('Controlled A/B', mode === 'controlled', () => { setMode('controlled'); setComparison(null); setEvidence(null); setExperiment(null) }, busy),
       ),
+      runStartedAt ? React.createElement(RunProgressView, { progress: runProgress, startedAt: runStartedAt, receivedAt: progressReceivedAt, issue: progressIssue }) : null,
       mode === 'sessions' ? React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'dproof-columns' },
           sessionPicker('Baseline', baselineId, sessions, setBaselineId),
@@ -188,8 +211,8 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   )
 }
 
-function tab(label: string, active: boolean, onClick: () => void): React.ReactElement {
-  return React.createElement('button', { type: 'button', className: `dproof-tab${active ? ' is-active' : ''}`, onClick }, label)
+function tab(label: string, active: boolean, onClick: () => void, disabled: boolean): React.ReactElement {
+  return React.createElement('button', { type: 'button', className: `dproof-tab${active ? ' is-active' : ''}`, onClick, disabled }, label)
 }
 
 interface ControlledFormProps {
@@ -219,7 +242,7 @@ function ControlledForm(props: ControlledFormProps): React.ReactElement {
     props.setModelProvider(provider)
     props.setModelId(props.modelProviders.find((item) => item.id === provider)?.models[0]?.id ?? '')
   }
-  return React.createElement('section', { className: 'dproof-controlled' },
+  return React.createElement('fieldset', { className: 'dproof-controlled', disabled: props.busy },
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Source workspace'), React.createElement('input', { value: props.sourceDir, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSourceDir(event.target.value), placeholder: '/absolute/project/path' })),
     React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Same prompt for both variants'), React.createElement('textarea', { value: props.prompt, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => props.setPrompt(event.target.value), rows: 4 })),
     React.createElement('div', { className: 'dproof-columns' },

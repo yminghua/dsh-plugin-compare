@@ -18,6 +18,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
   const workspaces = []
   const executionOrder = []
   const agentTargets = []
+  const progressSamples = []
   const ctx = {
     connection: { rpc: { handle(_channel, handler) { rpcHandler = handler; return async () => {} } } },
     sessionQuery: {
@@ -32,7 +33,10 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
       listProviders() { return [{ id: 'deepseek', name: 'DeepSeek' }] },
       async listModels() { return [{ provider: 'deepseek', id: 'deepseek-chat', name: 'DeepSeek Chat' }] },
     },
-    agentDefaultModel: { currentSelection() { return { provider: 'deepseek', model: 'deepseek-chat' } } },
+    get(name) {
+      assert.equal(name, 'agentDefaultModel')
+      return { currentSelection() { return { provider: 'deepseek', model: 'deepseek-chat' } } }
+    },
     agents: {
       async create(options) {
         workspaces.push(options.meta.cwd)
@@ -47,7 +51,13 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
         const agent = {
           session, status: 'idle',
           followup() { writeFileSync(join(options.meta.cwd, 'generated.txt'), options.meta.agentPreset) },
-          async whenIdle() {}, cancel() {},
+          async whenIdle() {
+            const progress = await rpcHandler('controlled-progress', { runId: 'controlled-test-run' }, new AbortController().signal)
+            assert.equal(progress.ok, true)
+            assert.equal(progress.value.phase, 'running')
+            assert.equal(progress.value.events, 2)
+            progressSamples.push(progress.value)
+          }, cancel() {},
         }
         return { agent, async dispose() {} }
       },
@@ -60,6 +70,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
   try {
     apply(ctx, { runTimeoutMs: 1000, checkTimeoutMs: 1000 })
     const result = await rpcHandler('controlled-run', {
+      runId: 'controlled-test-run',
       sourceDir: source,
       prompt: 'same task',
       model: { provider: 'deepseek', model: 'deepseek-chat' },
@@ -69,6 +80,12 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
       trials: 2,
     }, new AbortController().signal)
     assert.equal(result.ok, true)
+    const completed = await rpcHandler('controlled-progress', { runId: 'controlled-test-run' }, new AbortController().signal)
+    assert.equal(completed.value.phase, 'completed')
+    assert.equal(completed.value.completedVariants, 4)
+    assert.deepEqual(progressSamples.filter((_, index) => index % 2 === 0).map((item) => [item.trial, item.variant, item.completedVariants]), [
+      [1, 'baseline', 0], [1, 'candidate', 1], [2, 'candidate', 2], [2, 'baseline', 3],
+    ])
     assert.equal(result.value.comparison.baseline.metrics.outcome, 'pass')
     assert.equal(result.value.comparison.candidate.metrics.outcome, 'pass')
     assert.equal(result.value.design.isolation, 'filesystem-copy')
@@ -91,6 +108,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
 
     await symlink(outside, join(source, 'escape'))
     const refused = await rpcHandler('controlled-run', {
+      runId: 'refused-test-run',
       sourceDir: source, prompt: 'same task',
       model: { provider: 'deepseek', model: 'deepseek-chat' },
       baseline: { presetId: 'base', presetName: 'Base' },
@@ -98,6 +116,8 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
     }, new AbortController().signal)
     assert.equal(refused.ok, false)
     assert.match(refused.error.message, /symlink escapes sourceDir/)
+    const failed = await rpcHandler('controlled-progress', { runId: 'refused-test-run' }, new AbortController().signal)
+    assert.equal(failed.value.phase, 'failed')
 
     const models = await rpcHandler('models', {}, new AbortController().signal)
     assert.equal(models.ok, true)

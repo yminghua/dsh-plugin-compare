@@ -37,7 +37,10 @@ export function injectStyles(): void {
 .dproof-tabs { display:flex; gap:4px; padding:3px; border-radius:9px; background:var(--dsw-alias-bg-layer-2); }
 .dproof-tab { flex:1; appearance:none; border:0; border-radius:7px; padding:7px; background:transparent; color:var(--dsw-alias-label-tertiary); font:inherit; font-size:12px; cursor:pointer; }
 .dproof-tab.is-active { background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 1px 4px rgba(0,0,0,.12); }
-.dproof-controlled { display:grid; gap:10px; }
+.dproof-controlled { display:grid; gap:10px; border:0; padding:0; margin:0; min-width:0; }
+.dproof-progress { display:grid; gap:9px; padding:14px; border:1px solid var(--dsw-alias-border-l2); border-radius:10px; background:var(--dsw-alias-bg-layer-2); font-size:12px; font-variant-numeric:tabular-nums; }
+.dproof-progress progress { width:100%; height:7px; accent-color:var(--dsw-alias-brand-primary); }
+.dproof-tab:disabled { cursor:default; }
 .dproof-field { display:grid; gap:5px; color:var(--dsw-alias-label-secondary); font-size:11px; }
 .dproof-field input,.dproof-field textarea,.dproof-field select { box-sizing:border-box; width:100%; border:1px solid var(--dsw-alias-border-l2); border-radius:7px; padding:7px 8px; background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font:inherit; font-size:12px; resize:vertical; }
 .dproof-warning { padding:9px 10px; border-radius:8px; background:var(--dsw-alias-bg-module-platform); color:var(--dsw-alias-label-tertiary); font-size:10px; }

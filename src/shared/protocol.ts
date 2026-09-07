@@ -67,5 +67,27 @@ export interface ControlledRunResult extends CompareSessionsResult {
   summary: ExperimentSummary
 }
 
-export type RpcError = { code: string; message: string }
+export type RunPhase = 'preparing' | 'copying' | 'starting' | 'running' | 'checking' | 'collecting' | 'cleanup' | 'completed' | 'failed'
+export interface ControlledProgress {
+  runId: string
+  phase: RunPhase
+  startedAt: number
+  phaseStartedAt: number
+  updatedAt: number
+  trial: number
+  trials: number
+  variant: 'baseline' | 'candidate' | null
+  presetName: string
+  completedVariants: number
+  completedDurationMs: number
+  totalVariants: number
+  events: number
+  lastActivityAt: number | null
+  runTimeoutMs: number
+  checkTimeoutMs: number
+}
+export type ProgressUpdate = Partial<Pick<ControlledProgress, 'phase' | 'trial' | 'variant' | 'presetName' | 'completedVariants' | 'events' | 'lastActivityAt'>>
+
+// The subset of the DSH transport error contract emitted by this plugin.
+export type RpcError = { code: 'internal'; message: string; details: Record<string, never> }
 export type RpcResult<T> = { ok: true; value: T } | { ok: false; error: RpcError }

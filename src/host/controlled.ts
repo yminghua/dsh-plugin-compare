@@ -21,7 +21,7 @@ import {
   type RunEvidence,
   type RunFailure,
 } from '../core/index.ts'
-import type { ControlledRunResult, ListModelsResult, ModelSelection, PresetListItem } from '../shared/protocol.ts'
+import type { ControlledRunResult, ListModelsResult, ModelSelection, PresetListItem, ProgressUpdate } from '../shared/protocol.ts'
 import type { HostContext } from './services.ts'
 
 const execFileAsync = promisify(execFile)
@@ -55,9 +55,11 @@ export async function listAvailableModels(ctx: HostContext): Promise<ListModelsR
       ...(model.description ? { description: model.description } : {}),
     })),
   })))
-  const service = (ctx as unknown as {
-    agentDefaultModel?: { currentSelection(): ModelSelection | undefined }
-  }).agentDefaultModel
+  // Optional services must use Cordis get(): property access requires injection
+  // and throws even when followed by optional chaining.
+  const service = ctx.get('agentDefaultModel') as {
+    currentSelection(): ModelSelection | undefined
+  } | undefined
   const defaultSelection = service?.currentSelection()
   return { providers, ...(defaultSelection ? { defaultSelection } : {}) }
 }
@@ -67,6 +69,7 @@ export async function runControlledComparison(
   payload: unknown,
   config: ControlledRunConfig,
   signal?: AbortSignal,
+  progress?: (update: ProgressUpdate) => void,
 ): Promise<ControlledRunResult> {
   const input = validateControlledRunInput(payload, config.maxTrials)
   const sourceDir = await realpath(input.sourceDir)
@@ -82,20 +85,30 @@ export async function runControlledComparison(
       const baselineDir = join(trialRoot, 'baseline')
       const candidateDir = join(trialRoot, 'candidate')
       try {
+        progress?.({ phase: 'copying', trial: index + 1, variant: null, presetName: '', events: 0, lastActivityAt: null })
         await copyPair(sourceDir, baselineDir, candidateDir)
         signal?.throwIfAborted()
         let baseline: VariantResult
         let candidate: VariantResult
+        let finished = index * 2
+        const run = async (variant: 'baseline' | 'candidate', cwd: string) => {
+          const preset = input[variant]
+          progress?.({ phase: 'starting', variant, presetName: preset.presetName, events: 0, lastActivityAt: null })
+          const result = await runVariant(ctx, cwd, input.prompt, input.model, preset.presetId, preset.presetName, input.successCommand, config, signal, progress)
+          progress?.({ completedVariants: ++finished })
+          return result
+        }
         if (index % 2 === 0) {
-          baseline = await runVariant(ctx, baselineDir, input.prompt, input.model, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
-          candidate = await runVariant(ctx, candidateDir, input.prompt, input.model, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
+          baseline = await run('baseline', baselineDir)
+          candidate = await run('candidate', candidateDir)
         } else {
-          candidate = await runVariant(ctx, candidateDir, input.prompt, input.model, input.candidate.presetId, input.candidate.presetName, input.successCommand, config, signal)
-          baseline = await runVariant(ctx, baselineDir, input.prompt, input.model, input.baseline.presetId, input.baseline.presetName, input.successCommand, config, signal)
+          candidate = await run('candidate', candidateDir)
+          baseline = await run('baseline', baselineDir)
         }
         comparisons.push(compareRuns(baseline.run, candidate.run))
         firstEvidence ??= comparisonEvidence(baseline.evidence, candidate.evidence)
       } finally {
+        progress?.({ phase: 'cleanup' })
         await rm(trialRoot, { recursive: true, force: true })
       }
     }
@@ -121,6 +134,7 @@ export async function runControlledComparison(
       },
     }
   } finally {
+    progress?.({ phase: 'cleanup' })
     await rm(root, { recursive: true, force: true })
   }
 }
@@ -166,6 +180,7 @@ async function runVariant(
   successCommand: string | undefined,
   config: ControlledRunConfig,
   signal?: AbortSignal,
+  progress?: (update: ProgressUpdate) => void,
 ): Promise<VariantResult> {
   signal?.throwIfAborted()
   const preset = await ctx.agentPresets.resolve(presetId)
@@ -184,9 +199,24 @@ async function runVariant(
   } catch (error) {
     return startupFailureResult(sessionId, cwd, presetName, model, successCommand, error, started, await captureGit(cwd, config.checkTimeoutMs))
   }
+  let activityTimer: ReturnType<typeof setInterval> | undefined
   try {
+    progress?.({ phase: 'running' })
+    let lastCount = -1
+    const activity = () => {
+      const count = handle.agent.session.events.length
+      if (count !== lastCount) {
+        lastCount = count
+        progress?.({ events: count, ...(count ? { lastActivityAt: Date.now() } : {}) })
+      }
+    }
+    if (progress) activityTimer = setInterval(activity, 1000)
     handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: prompt }], source: { kind: 'user' } }))
+    activity()
     const timedOut = await waitForIdle(handle.agent, config.runTimeoutMs, signal)
+    if (activityTimer) clearInterval(activityTimer)
+    activity()
+    progress?.({ phase: 'collecting' })
     await ctx.sessions.flush(handle.agent.session)
     const git = await captureGit(cwd, config.checkTimeoutMs)
     const projected = projectSession({
@@ -201,6 +231,7 @@ async function runVariant(
       provider: projected.provider ?? model.provider,
       model: projected.model ?? model.model,
     }
+    if (!timedOut && routed.metrics.execution === 'completed' && successCommand) progress?.({ phase: 'checking' })
     const check = timedOut
       ? timeoutCheck(successCommand)
       : routed.metrics.execution !== 'completed'
@@ -210,6 +241,8 @@ async function runVariant(
     const evidence: RunEvidence = { ...projectSessionEvidence(sessionId, handle.agent.session.events), git }
     return { run, evidence }
   } finally {
+    if (activityTimer) clearInterval(activityTimer)
+    progress?.({ phase: 'collecting' })
     await handle.dispose()
   }
 }

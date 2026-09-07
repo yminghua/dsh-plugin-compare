@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const version = process.argv.slice(2).find((argument) => argument !== '--') ?? 'latest'
 if (!/^(?:latest|next|\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.test(version)) throw new Error(`Invalid DSH version: ${version}`)
@@ -24,6 +25,16 @@ try {
   server.stderr.on('data', collect)
   try {
     const url = await waitForUrl(server, () => output, 120_000)
+    const profileRequire = createRequire(join(dshHome, 'profiles', 'web', 'package.json'))
+    let serverResponseSchema
+    try {
+      const schemaPath = profileRequire.resolve('@deepseek-ai/dsh-host-apiproxy/api/rpc.schema')
+      ;({ serverResponseSchema } = await import(pathToFileURL(schemaPath).href))
+    } catch (error) {
+      // Newer distributions do not expose this package. Keep wire assertions
+      // below, but require the official schema for the minimum-version gate.
+      if (version === '0.1.1-rc.2' || error.code !== 'MODULE_NOT_FOUND') throw error
+    }
     const browser = await openIndex(url)
     const index = browser.index
     const clientUrl = pluginClientUrl(url, index)
@@ -38,7 +49,29 @@ try {
     if (!index.includes('"id":"dsh-proof"')) throw new Error('DSH boot manifest does not include dsh-proof')
     if (!index.includes('"inject":["connection","slots"]')) throw new Error('DSH boot manifest has unexpected dsh-proof client injections')
     if (!client.includes('DSH Proof')) throw new Error('dsh-proof client bundle is missing its UI marker')
-    process.stdout.write(`dsh-proof compatibility smoke passed: DSH ${version} at ${url}\n`)
+    for (const method of ['list', 'presets', 'models', 'controlled-progress', 'unknown-endpoint']) {
+      const response = await fetch(endpoint(url, `/dsh-proof/${method}`), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(browser.cookie ? { cookie: browser.cookie } : {}) },
+        body: JSON.stringify({ type: 'client-request', rpcId: method, method, payload: method === 'controlled-progress' ? { runId: 'smoke-missing-run' } : {} }),
+      })
+      if (!response.ok) throw new Error(`${method}: HTTP ${response.status}`)
+      const body = await response.json()
+      const envelope = serverResponseSchema ? serverResponseSchema.parse(body) : body
+      if (envelope.type !== 'server-response' || envelope.rpcId !== method) throw new Error(`${method}: invalid RPC envelope`)
+      const result = envelope.result
+      if (method === 'unknown-endpoint') {
+        if (result.ok !== false || result.error?.code !== 'internal' || !result.error.details) throw new Error(`Invalid error contract: ${JSON.stringify(result)}`)
+      } else if (result.ok !== true) {
+        throw new Error(`${method}: ${JSON.stringify(result)}`)
+      } else if (method === 'controlled-progress') {
+        if (result.value !== null) throw new Error('Missing runs must have null progress')
+      } else {
+        const key = { list: 'sessions', presets: 'presets', models: 'providers' }[method]
+        if (!Array.isArray(result.value?.[key])) throw new Error(`${method}: missing ${key}`)
+      }
+    }
+    process.stdout.write(`dsh-proof compatibility smoke passed: DSH ${version} at ${new URL(url).origin}\n`)
   } finally {
     await stop(server)
   }
