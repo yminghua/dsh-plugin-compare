@@ -83,7 +83,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
     const completed = await rpcHandler('controlled-progress', { runId: 'controlled-test-run' }, new AbortController().signal)
     assert.equal(completed.value.phase, 'completed')
     assert.equal(completed.value.completedVariants, 4)
-    assert.deepEqual(progressSamples.filter((_, index) => index % 2 === 0).map((item) => [item.trial, item.variant, item.completedVariants]), [
+    assert.deepEqual(progressSamples.map((item) => [item.trial, item.variant, item.completedVariants]), [
       [1, 'baseline', 0], [1, 'candidate', 1], [2, 'candidate', 2], [2, 'baseline', 3],
     ])
     assert.equal(result.value.comparison.baseline.metrics.outcome, 'pass')
@@ -176,6 +176,58 @@ test('controlled RPC reports startup failures and skips success checks', async (
     assert.equal(result.value.comparison.baseline.metrics.outcome, 'unknown')
     assert.match(result.value.design.caveat, /Invalid comparison/)
     assert.equal(result.value.evidence.baseline.timeline.at(-1).label, 'Turn ended · prompt variable "{{model}}" has no value')
+  } finally {
+    await rm(source, { recursive: true, force: true })
+  }
+})
+
+test('controlled RPC enforces a hard bound when cancellation never becomes idle', async () => {
+  const source = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-timeout-source-'))
+  await writeFile(join(source, 'input.txt'), 'original')
+  let rpcHandler
+  let cancellations = 0
+  let disposals = 0
+  const never = () => new Promise(() => {})
+  const ctx = {
+    connection: { rpc: { handle(_channel, handler) { rpcHandler = handler; return async () => {} } } },
+    sessionQuery: { async listSessions() { return [] }, async readSession() { return { events: [] } }, async readTitleSnapshots() { return [] } },
+    agentPresets: {
+      async list() { return [{ id: 'base', name: 'Base', trust: 'system' }] },
+      async resolve(id) { return { id, name: id, trust: 'system' } },
+      async mount() {},
+    },
+    llm: { listProviders() { return [] }, async listModels() { return [] } },
+    agents: {
+      async create(options) {
+        await options.setup({})
+        const session = { id: options.sessionId, header: { id: options.sessionId, createdAt: Date.now(), cwd: options.meta.cwd }, events: [] }
+        return {
+          agent: { session, status: 'running', followup() {}, whenIdle: never, cancel() { cancellations += 1 } },
+          dispose() { disposals += 1; return never() },
+        }
+      },
+    },
+    sessions: { async flush() { return true } },
+    on() { return () => {} },
+    effect(register) { register(); return () => {} },
+  }
+  try {
+    apply(ctx, { runTimeoutMs: 10, checkTimeoutMs: 100 })
+    const started = Date.now()
+    const result = await rpcHandler('controlled-run', {
+      sourceDir: source,
+      prompt: 'same task',
+      model: { provider: 'deepseek', model: 'deepseek-chat' },
+      baseline: { presetId: 'base', presetName: 'Base' },
+      candidate: { presetId: 'base', presetName: 'Base' },
+      trials: 1,
+    }, new AbortController().signal)
+    assert.equal(result.ok, true)
+    assert.equal(result.value.comparison.baseline.check.status, 'error')
+    assert.equal(result.value.comparison.candidate.check.status, 'error')
+    assert.equal(cancellations, 2)
+    assert.equal(disposals, 2)
+    assert.ok(Date.now() - started < 1_500, 'unresponsive cancellation must not wait forever')
   } finally {
     await rm(source, { recursive: true, force: true })
   }

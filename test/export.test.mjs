@@ -39,6 +39,8 @@ test('exports redacted JSON and escaped standalone HTML', () => {
   assert.match(html, /&lt;script&gt;alert/)
   assert.match(html, /Recorded file evidence/)
   assert.match(html, /1 paired trial/)
+  assert.match(html, /Privacy check required before sharing/)
+  assert.match(html, /not a privacy clearance/)
   const svg = renderComparisonSvg(report)
   assert.match(svg, /^<svg /)
   assert.doesNotMatch(svg, /abcdefghijklmnopqrstuvwxyz/)
@@ -68,6 +70,7 @@ test('web, HTML, SVG and JSON preserve plugin identity separately from the prese
     assert.match(output, /专家模式/)
     assert.match(output, /not a (?:stable plugin ranking|cost saving)|not monetary cost/)
   }
+  assert.match(renderToStaticMarkup(React.createElement(ComparisonView, { comparison, evidence, experiment: report.experiment })), /Privacy check required before sharing/)
   const html = renderComparisonHtml(report)
   assert.match(html, /Plugin identity not recorded/)
   assert.match(html, /Cache read tokens/)

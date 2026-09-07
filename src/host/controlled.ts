@@ -27,6 +27,8 @@ import { readPresetIdentity } from './identity.ts'
 
 const execFileAsync = promisify(execFile)
 const MAX_COMMAND_OUTPUT = 200_000
+const MAX_AGENT_SHUTDOWN_GRACE_MS = 1_000
+const MIN_AGENT_SHUTDOWN_GRACE_MS = 100
 
 export interface ControlledRunConfig {
   runTimeoutMs: number
@@ -248,7 +250,7 @@ async function runVariant(
   } finally {
     if (activityTimer) clearInterval(activityTimer)
     progress?.({ phase: 'collecting' })
-    await handle.dispose()
+    await settleWithin(Promise.resolve().then(() => handle.dispose()), shutdownGraceMs(config.runTimeoutMs))
   }
 }
 
@@ -302,33 +304,50 @@ function skippedCheck(command: string | undefined, failure?: RunFailure): Explic
 }
 
 async function waitForIdle(agent: Agent, timeoutMs: number, signal?: AbortSignal): Promise<boolean> {
-  let timedOut = false
+  type Outcome = 'idle' | 'timeout' | 'aborted'
   let timer: ReturnType<typeof setTimeout> | undefined
-  const timeout = new Promise<void>((resolve) => {
+  const idle = agent.whenIdle()
+  const timeout = new Promise<Outcome>((resolve) => {
     timer = setTimeout(() => {
-      timedOut = true
       agent.cancel({ kind: 'hook', reason: 'dsh-plugin-compare controlled-run timeout' })
-      resolve()
+      resolve('timeout')
     }, timeoutMs)
   })
   const onAbort = () => {
     agent.cancel({ kind: 'hook', reason: 'dsh-plugin-compare request aborted' })
-    abortResolve?.()
+    abortResolve?.('aborted')
   }
-  let abortResolve: (() => void) | undefined
-  const aborted = signal ? new Promise<void>((resolve) => {
+  let abortResolve: ((outcome: Outcome) => void) | undefined
+  const aborted = signal ? new Promise<Outcome>((resolve) => {
     abortResolve = resolve
     signal.addEventListener('abort', onAbort, { once: true })
-  }) : new Promise<void>(() => {})
+  }) : new Promise<Outcome>(() => {})
+  let outcome: Outcome
   try {
-    await Promise.race([agent.whenIdle(), timeout, aborted])
+    outcome = await Promise.race([idle.then((): Outcome => 'idle'), timeout, aborted])
   } finally {
     if (timer) clearTimeout(timer)
     signal?.removeEventListener('abort', onAbort)
   }
-  await agent.whenIdle()
+  if (outcome !== 'idle') await settleWithin(idle, shutdownGraceMs(timeoutMs))
   signal?.throwIfAborted()
-  return timedOut
+  return outcome === 'timeout'
+}
+
+function shutdownGraceMs(timeoutMs: number): number {
+  return Math.min(MAX_AGENT_SHUTDOWN_GRACE_MS, Math.max(MIN_AGENT_SHUTDOWN_GRACE_MS, Math.ceil(timeoutMs / 100)))
+}
+
+async function settleWithin(operation: Promise<unknown>, timeoutMs: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), timeoutMs)
+  })
+  try {
+    return await Promise.race([operation.then(() => true), deadline])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
 }
 
 async function runCheck(cwd: string, command: string, timeoutMs: number): Promise<ExplicitCheckResult> {

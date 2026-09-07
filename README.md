@@ -22,6 +22,10 @@ The controlled runner supports 1–10 paired trials and alternates which variant
 
 The selected provider/model is passed explicitly to every controlled Agent. If an Agent fails before completing its task, the structured failure is displayed and exported, the success-check command is marked `not-run`, and the comparison is labeled invalid rather than turning unchanged-code test failures into a preset result.
 
+## Privacy before sharing
+
+Exports can contain prompts, source paths, code diffs, command output, provider/model names, and Session ids. Automatic redaction is best-effort and is **not** a privacy clearance. Review every HTML, JSON, SVG, PNG, and screenshot before sharing it; remove credentials, account information, private URLs, personal paths, and proprietary source as appropriate. A redaction count of zero means only that no configured pattern matched.
+
 ## Evidence captured
 
 - Task outcome and explicit test result

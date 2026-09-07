@@ -53,3 +53,25 @@ test('redactor removes common credentials', () => {
   assert.equal(result.text, 'Authorization: [REDACTED:bearer_token]')
   assert.equal(result.matches, 1)
 })
+
+test('redactor covers provider tokens, named secrets, and credential URLs', () => {
+  const samples = [
+    ['github_pat_11AA22BB33CC44DD55EE66FF', 'github_token'],
+    ['glpat-11AA22BB33CC44DD55EE66FF', 'gitlab_token'],
+    ['npm_11AA22BB33CC44DD55EE66FF', 'npm_token'],
+    ['xoxb-11AA22BB33CC44DD55EE66FF', 'slack_token'],
+    ['SG.11AA22BB33CC44DD.55EE66FF77GG88HH', 'sendgrid_key'],
+    [`AIza${'A'.repeat(35)}`, 'google_api_key'],
+    [`AKIA${'A1'.repeat(8)}`, 'aws_access_key'],
+    ['sk-proj-11AA22BB33CC44DD55EE66FF', 'secret_key'],
+    ['api_key=11AA22BB33CC44DD55EE66FF', 'named_credential'],
+    ['"clientSecret": "11AA22BB33CC44DD55EE66FF"', 'named_credential'],
+    ['postgres://demo:11AA22BB33CC44DD@db.example/app', 'credential_url'],
+  ]
+  for (const [value, label] of samples) {
+    const result = redactSecrets(value)
+    assert.equal(result.matches, 1, value)
+    assert.doesNotMatch(result.text, /11AA22BB|AAAAAA/, value)
+    assert.match(result.text, new RegExp(`REDACTED:${label}`), value)
+  }
+})

@@ -361,11 +361,14 @@ export function ComparisonView({ comparison, evidence, caveat, experiment }: { c
 }
 
 function ReportActions({ report }: { report: ReturnType<typeof createComparisonReport> }): React.ReactElement {
-  return React.createElement('div', { className: 'dcompare-export' },
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'dcompare-warning', role: 'note' }, 'Privacy check required before sharing: automatic redaction is best-effort, not a privacy clearance. Review prompts, paths, code, command output, account data, private URLs, and Session ids.'),
+    React.createElement('div', { className: 'dcompare-export' },
       React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'html') }, 'Download report · HTML'),
       React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'json') }, 'Evidence · JSON'),
       React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'svg') }, 'SVG card'),
       React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => void downloadPng(report) }, 'PNG card'),
+    ),
   )
 }
 
