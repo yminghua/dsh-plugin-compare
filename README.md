@@ -23,7 +23,7 @@ Stable releases use the unqualified package name:
 dsh plugin --profile web add dsh-plugin-compare
 ```
 
-npm requires every published package to have a `latest` tag. Because the alpha is currently the package's first and only published version, an unqualified install may also resolve to the alpha; treat it as a prerelease and use `@next` explicitly until the first stable release moves `latest` to a stable version.
+npm requires every published package to have a `latest` tag. The first published version bootstrapped `latest` to an alpha, and later prereleases update only `next`; an unqualified install may therefore still resolve to an alpha. Treat it as a prerelease and use `@next` explicitly until the first stable release moves `latest` to a stable version.
 
 Update or remove the installed package with the same profile:
 
