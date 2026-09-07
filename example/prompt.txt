@@ -1,3 +1,3 @@
-阅读 README.md 和现有测试，修复 src/checkout.mjs，使实现满足文档规则，并通过 node --test。
+Read README.md and the existing tests, then fix src/checkout.mjs so that the implementation satisfies the documented rules and passes node --test.
 
-不要修改测试、删掉断言或改变公开 API。不要安装第三方依赖。完成后运行测试，并简要说明修改内容。
+Do not modify the tests, remove assertions, or change the public API. Do not install third-party dependencies. When finished, run the tests and briefly summarize your changes.
