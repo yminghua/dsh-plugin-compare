@@ -4,6 +4,8 @@
 
 `dsh-plugin-compare` 用已有 Session 或受控 A/B 运行对比 DeepSeek Harness 插件与 Preset，并把真实执行证据整理成并排时间线、指标差异、显式成功检查和可分享的对比报告。
 
+[![DSH Plugin Compare 结果：标准模式与 dsh-expert-mode 对比](./example/readme-demo.png)](./example/results/checkout-demo.html)
+
 ## 跟着 example 跑一次
 
 从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。仓库已收录审核后的真实运行 [HTML 报告](./example/results/checkout-demo.html)和 [截图](./example/screenshots/README.md)。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。

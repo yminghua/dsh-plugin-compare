@@ -4,6 +4,8 @@
 
 `dsh-plugin-compare` compares DeepSeek Harness plugins and presets using existing sessions or controlled A/B runs. It turns recorded execution evidence into side-by-side timelines, measurable deltas, explicit success checks, and shareable comparison reports.
 
+[![DSH Plugin Compare result: Standard versus dsh-expert-mode](./example/readme-demo.png)](./example/results/checkout-demo.html)
+
 中文文档: [README.zh.md](./README.zh.md)
 
 ## Try the checkout example
