@@ -33,6 +33,34 @@ jobs:
         run: |
           echo "tag=$(node -p 'require("./package.json").version.includes("-") ? "next" : "latest"')" >> "$GITHUB_OUTPUT"
       - name: Publish to npm
-        run: npm publish --provenance --tag "${{ steps.npm-dist-tag.outputs.tag }}"
+        run: |
+          package_name=$(node -p 'require("./package.json").name')
+          package_version=$(node -p 'require("./package.json").version')
+          published=$(npm view "$package_name@$package_version" version --registry=https://registry.npmjs.org 2>/dev/null || true)
+          if [ "$published" = "$package_version" ]; then
+            echo "$package_name@$package_version is already published; skipping npm publish"
+          else
+            npm publish --provenance --tag "${{ steps.npm-dist-tag.outputs.tag }}"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub release $GITHUB_REF_NAME already exists"
+            exit 0
+          fi
+          args=(--verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" "${args[@]}" --repo "$GITHUB_REPOSITORY"

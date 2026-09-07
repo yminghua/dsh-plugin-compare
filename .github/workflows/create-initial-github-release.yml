@@ -1,0 +1,25 @@
+name: Create initial GitHub release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/create-initial-github-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create v0.1.0-alpha.1 release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.1.0-alpha.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub release v0.1.0-alpha.1 already exists"
+          else
+            gh release create v0.1.0-alpha.1 --verify-tag --generate-notes --title v0.1.0-alpha.1 --prerelease --repo "$GITHUB_REPOSITORY"
+          fi

@@ -21,5 +21,8 @@ test('release workflow selects next for prereleases and latest for stable versio
   assert.match(releaseWorkflow, /version\.includes\("-"\) \? "next" : "latest"/)
   assert.match(releaseWorkflow, /npm install --global npm@11\.16\.0/)
   assert.match(releaseWorkflow, /npm publish --provenance --tag "\$\{\{ steps\.npm-dist-tag\.outputs\.tag \}\}"/)
+  assert.match(releaseWorkflow, /is already published; skipping npm publish/)
+  assert.match(releaseWorkflow, /gh release create "\$GITHUB_REF_NAME"/)
+  assert.match(releaseWorkflow, /args\+=\(--prerelease\)/)
   assert.match(releaseWorkflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/)
 })
