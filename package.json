@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-compare",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Controlled A/B comparisons and evidence-backed reports for DeepSeek Harness plugins and presets.",
   "type": "module",
   "main": "lib/index.js",
