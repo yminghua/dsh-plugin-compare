@@ -1,0 +1,8 @@
+{
+  "name": "dsh-proof-checkout-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

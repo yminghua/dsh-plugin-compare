@@ -4,6 +4,10 @@
 
 `dsh-proof` 是一个 DeepSeek Harness 插件，用同一任务的原生运行与插件运行做 Before / After 对比，并把 Session 证据生成分屏回放、指标差异和可分享的 Proof Card。
 
+## 跟着 example 跑一次
+
+从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。
+
 ## 当前状态
 
 当前 Alpha 版既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会为两边显式选择同一个已配置的 provider/model，复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG Proof Card。详见 [路线图](./docs/ROADMAP.md)。

@@ -6,6 +6,10 @@
 
 中文文档: [README.zh.md](./README.zh.md)
 
+## Try the checkout example
+
+Follow the [step-by-step walkthrough (Chinese)](./example/README.md): create a fresh intentionally broken checkout project, compare Standard and `dsh-expert-mode`, inspect the checks, and save screenshots and reports. The fixture needs no third-party dependencies; model-backed runs still consume tokens. Run `node example/prepare.mjs` from this repository to prepare a fresh workspace without changing the fixture.
+
 ## Status
 
 Alpha. The Web `Proof` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs explicitly select one configured provider/model for both variants, copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).

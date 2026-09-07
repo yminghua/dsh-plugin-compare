@@ -7,3 +7,5 @@ coverage/
 .env
 reports/
 fixtures/private/
+example/.work/
+example/captures/
