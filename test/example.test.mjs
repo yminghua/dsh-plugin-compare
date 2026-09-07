@@ -56,7 +56,11 @@ test('npm package keeps the runnable example but excludes heavyweight evidence a
       encoding: 'utf8',
       env: { ...process.env, NPM_CONFIG_CACHE: cache },
     })
-    const [{ files, size, unpackedSize }] = JSON.parse(output)
+    // npm 10 can emit prepare-script output before the JSON even with
+    // --ignore-scripts, while newer npm versions emit only the JSON payload.
+    const payload = output.match(/(\[\s*\{\s*"id"[\s\S]*\]\s*)$/)
+    assert.ok(payload, `npm pack did not emit a JSON payload:\n${output}`)
+    const [{ files, size, unpackedSize }] = JSON.parse(payload[1])
     const paths = files.map(({ path }) => path)
     assert.ok(paths.includes('example/checkout/src/checkout.mjs'))
     assert.ok(paths.includes('example/results/checkout-demo.html'))
