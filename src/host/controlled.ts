@@ -23,6 +23,7 @@ import {
 } from '../core/index.ts'
 import type { ControlledRunResult, ListModelsResult, ModelSelection, PresetListItem, ProgressUpdate } from '../shared/protocol.ts'
 import type { HostContext } from './services.ts'
+import { readPresetIdentity } from './identity.ts'
 
 const execFileAsync = promisify(execFile)
 const MAX_COMMAND_OUTPUT = 200_000
@@ -36,13 +37,14 @@ export interface ControlledRunConfig {
 interface VariantResult { run: ProofComparison['baseline']; evidence: RunEvidence }
 
 export async function listUsablePresets(ctx: HostContext): Promise<PresetListItem[]> {
-  return (await ctx.agentPresets.list()).map((preset) => ({
+  return Promise.all((await ctx.agentPresets.list()).map(async (preset) => ({
     id: preset.id,
     name: preset.name ?? preset.id,
     trust: preset.trust,
     ...(preset.description ? { description: preset.description } : {}),
     ...(preset.broken ? { broken: preset.broken } : {}),
-  }))
+    ...await readPresetIdentity(preset),
+  })))
 }
 
 export async function listAvailableModels(ctx: HostContext): Promise<ListModelsResult> {
@@ -184,6 +186,7 @@ async function runVariant(
 ): Promise<VariantResult> {
   signal?.throwIfAborted()
   const preset = await ctx.agentPresets.resolve(presetId)
+  const identity = await readPresetIdentity(preset)
   if (preset.broken) throw new Error(`Preset "${presetId}" is broken: ${preset.broken}`)
   const sessionId = SessionId(`dsh-proof-${randomUUID()}`)
   const started = Date.now()
@@ -197,7 +200,8 @@ async function runVariant(
       ...(signal ? { signal } : {}),
     })
   } catch (error) {
-    return startupFailureResult(sessionId, cwd, presetName, model, successCommand, error, started, await captureGit(cwd, config.checkTimeoutMs))
+    const result = startupFailureResult(sessionId, cwd, presetName, model, successCommand, error, started, await captureGit(cwd, config.checkTimeoutMs))
+    return { ...result, run: { ...result.run, ...identity } }
   }
   let activityTimer: ReturnType<typeof setInterval> | undefined
   try {
@@ -228,6 +232,7 @@ async function runVariant(
     })
     const routed = {
       ...projected,
+      ...identity,
       provider: projected.provider ?? model.provider,
       model: projected.model ?? model.model,
     }

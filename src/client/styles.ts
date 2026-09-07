@@ -1,12 +1,4 @@
-let injected = false
-
-export function injectStyles(): void {
-  if (injected) return
-  injected = true
-  const style = document.createElement('style')
-  style.dataset.plugin = 'dsh-proof'
-  style.dataset.pluginCss = 'dsh-proof/panel'
-  style.textContent = `
+export const proofStyles = `
 .dproof-button { appearance:none; border:1px solid var(--dsw-alias-border-l2); background:none; color:var(--dsw-alias-label-secondary); border-radius:8px; padding:5px 10px; font:inherit; font-size:12px; cursor:pointer; }
 .dproof-button:hover { background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); }
 .dproof-panel { position:fixed; inset:72px 24px 24px auto; width:min(820px,calc(100vw - 48px)); z-index:100; pointer-events:auto; display:flex; flex-direction:column; border:1px solid var(--dsw-alias-border-l2); border-radius:16px; background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 18px 60px rgba(0,0,0,.22); overflow:hidden; }
@@ -25,6 +17,22 @@ export function injectStyles(): void {
 .dproof-compare:disabled { opacity:.45; cursor:default; }
 .dproof-error { border-radius:9px; padding:10px 12px; background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent); color:var(--dsw-alias-state-error-primary); font-size:12px; }
 .dproof-results { display:grid; gap:12px; }
+.dproof-overview { display:grid; gap:16px; padding:20px; border:1px solid var(--dsw-alias-border-l2); border-radius:12px; }
+.dproof-overview h2 { margin:0; font-size:22px; line-height:1.35; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.dproof-overview p { margin:0; line-height:1.6; }
+.dproof-eyebrow { font-size:10px; font-weight:650; letter-spacing:.1em; color:var(--dsw-alias-label-tertiary); }
+.dproof-identities { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.dproof-identity { display:grid; align-content:start; gap:8px; padding:15px; border:1px solid var(--dsw-alias-border-l2); border-top:3px solid #8599a4; border-radius:9px; min-width:0; overflow-wrap:anywhere; }
+.dproof-identity:nth-child(2) { border-top-color:#328c85; }
+.dproof-identity>strong { font-size:19px; letter-spacing:-.015em; }
+.dproof-identity>span:not(.dproof-eyebrow),.dproof-identity small { font-size:11px; color:var(--dsw-alias-label-secondary); }
+.dproof-version { justify-self:start; padding:2px 5px; border:1px solid var(--dsw-alias-border-l2); border-radius:4px; font-family:ui-monospace,monospace; }
+.dproof-check-badge { border-top:1px solid var(--dsw-alias-border-l2); padding-top:9px; font-size:11px; line-height:1.5; }
+.dproof-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.dproof-kpi { display:grid; gap:7px; min-width:0; padding:13px; background:var(--dsw-alias-bg-layer-2); border-radius:8px; font-variant-numeric:tabular-nums; }
+.dproof-kpi>span,.dproof-kpi>small { font-size:10px; color:var(--dsw-alias-label-secondary); }
+.dproof-kpi>strong { font-size:25px; letter-spacing:-.03em; overflow-wrap:anywhere; }
+.dproof-kpi>b { font-size:11px; font-weight:550; }
 .dproof-verdict { display:grid; gap:3px; border-radius:10px; padding:12px; background:var(--dsw-alias-bg-module-platform); }
 .dproof-verdict strong { font-size:13px; }
 .dproof-verdict span { color:var(--dsw-alias-label-tertiary); font-size:11px; }
@@ -33,7 +41,8 @@ export function injectStyles(): void {
 .dproof-row + .dproof-row { border-top:1px solid var(--dsw-alias-border-l2); }
 .dproof-row span:not(:first-child) { text-align:right; font-variant-numeric:tabular-nums; }
 .dproof-row-head { color:var(--dsw-alias-label-tertiary); background:var(--dsw-alias-bg-layer-2); font-size:11px; }
-.dproof-export { display:flex; justify-content:flex-end; gap:8px; }
+.dproof-export { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.dproof-configuration summary { padding:10px 0; font-size:12px; color:var(--dsw-alias-label-secondary); cursor:pointer; }
 .dproof-tabs { display:flex; gap:4px; padding:3px; border-radius:9px; background:var(--dsw-alias-bg-layer-2); }
 .dproof-tab { flex:1; appearance:none; border:0; border-radius:7px; padding:7px; background:transparent; color:var(--dsw-alias-label-tertiary); font:inherit; font-size:12px; cursor:pointer; }
 .dproof-tab.is-active { background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 1px 4px rgba(0,0,0,.12); }
@@ -64,7 +73,15 @@ export function injectStyles(): void {
 .dproof-failure { border:1px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 35%,transparent); }
 .dproof-failure>b { color:var(--dsw-alias-state-error-primary); }
 .dproof-manifest { color:var(--dsw-alias-label-tertiary); font-size:10px; }
-@media (max-width:700px) { .dproof-columns,.dproof-timelines,.dproof-diffs { grid-template-columns:1fr; } }
+@media (max-width:700px) { .dproof-columns,.dproof-timelines,.dproof-diffs,.dproof-identities { grid-template-columns:1fr; } .dproof-kpis { grid-template-columns:1fr; } .dproof-kpi { grid-template-columns:1fr auto; } }
 `
+let injected = false
+export function injectStyles(): void {
+  if (injected) return
+  injected = true
+  const style = document.createElement('style')
+  style.dataset.plugin = 'dsh-proof'
+  style.dataset.pluginCss = 'dsh-proof/panel'
+  style.textContent = proofStyles
   document.head.appendChild(style)
 }

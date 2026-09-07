@@ -29,6 +29,9 @@ export interface PresetListItem {
   trust: 'system' | 'user'
   description?: string
   broken?: string
+  plugin?: string
+  pluginVersion?: string
+  pluginSource?: 'package-manifest' | 'preset-registration'
 }
 
 export interface ListPresetsResult { presets: PresetListItem[] }

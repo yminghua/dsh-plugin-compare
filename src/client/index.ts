@@ -8,6 +8,7 @@ import { injectStyles } from './styles.ts'
 import { requestProofPanel, subscribeProofPanel } from './ui-state.ts'
 import { loadProofOptions, rpc } from './options.ts'
 import { RunProgressView, watchProgress } from './progress.ts'
+import { ReportOverview } from './report-overview.ts'
 
 export const inject = ['connection', 'slots']
 
@@ -192,13 +193,15 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
           disabled: busy || !baselineId || !candidateId || baselineId === candidateId,
           onClick: () => void compare(),
         }, busy ? 'Reading evidence…' : 'Compare sessions'),
-      ) : React.createElement(ControlledForm, {
+      ) : React.createElement(comparison ? 'details' : 'div', { className: 'dproof-configuration' },
+      comparison ? React.createElement('summary', null, 'Experiment configuration · expand to run again') : null,
+      React.createElement(ControlledForm, {
         presets, sourceDir, setSourceDir, prompt, setPrompt, baselinePreset, setBaselinePreset,
         candidatePreset, setCandidatePreset, successCommand, setSuccessCommand, busy,
         modelProviders, modelProvider, setModelProvider, modelId, setModelId,
         trials, setTrials,
         onRun: () => void runControlled(),
-      }),
+      })),
       error ? React.createElement('div', { className: 'dproof-error', role: 'alert' }, error) : null,
       comparison && evidence ? React.createElement(ComparisonView, { comparison, evidence, caveat: designCaveat, ...(experiment ? { experiment } : {}) }) : React.createElement(
         'div',
@@ -234,7 +237,7 @@ function ControlledForm(props: ControlledFormProps): React.ReactElement {
     React.createElement('span', null, label),
     React.createElement('select', { value, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onChange(event.target.value) },
       React.createElement('option', { value: '' }, 'Select preset'),
-      ...props.presets.map((item) => React.createElement('option', { key: item.id, value: item.id, disabled: Boolean(item.broken) }, `${item.name}${item.broken ? ' · broken' : ''}`)),
+      ...props.presets.map((item) => React.createElement('option', { key: item.id, value: item.id, disabled: Boolean(item.broken) }, `${item.plugin ? `${item.plugin}${item.pluginVersion ? ` v${item.pluginVersion}` : ''} / ` : ''}${item.name}${item.broken ? ' · broken' : ''}`)),
     ),
   )
   const models = props.modelProviders.find((item) => item.id === props.modelProvider)?.models ?? []
@@ -279,12 +282,16 @@ function sessionPicker(label: string, value: string, sessions: SessionListItem[]
   )
 }
 
-function ComparisonView({ comparison, evidence, caveat, experiment }: { comparison: ProofComparison; evidence: ComparisonEvidence; caveat?: string; experiment?: ExperimentSummary }): React.ReactElement {
+export function ComparisonView({ comparison, evidence, caveat, experiment }: { comparison: ProofComparison; evidence: ComparisonEvidence; caveat?: string; experiment?: ExperimentSummary }): React.ReactElement {
   const [progress, setProgress] = React.useState(1)
   const report = React.useMemo(() => createProofReport(comparison, evidence, undefined, experiment), [comparison, evidence, experiment])
   const safe = React.useMemo(() => sanitizeProofReport(report), [report])
   const rows: Array<[string, number, number, (value: number) => string]> = [
-    ['Tokens', comparison.deltas.totalTokens.baseline, comparison.deltas.totalTokens.candidate, compact],
+    ['Recorded tokens (incl. cache)', comparison.deltas.totalTokens.baseline, comparison.deltas.totalTokens.candidate, compact],
+    ['Input tokens', comparison.baseline.metrics.tokens.input, comparison.candidate.metrics.tokens.input, compact],
+    ['Output tokens', comparison.baseline.metrics.tokens.output, comparison.candidate.metrics.tokens.output, compact],
+    ['Cache read tokens', comparison.baseline.metrics.tokens.cacheRead, comparison.candidate.metrics.tokens.cacheRead, compact],
+    ['Cache write tokens', comparison.baseline.metrics.tokens.cacheWrite, comparison.candidate.metrics.tokens.cacheWrite, compact],
     ['Active time', comparison.deltas.durationMs.baseline, comparison.deltas.durationMs.candidate, duration],
     ['Steps', comparison.deltas.steps.baseline, comparison.deltas.steps.candidate, compact],
     ['Tool calls', comparison.deltas.toolCalls.baseline, comparison.deltas.toolCalls.candidate, compact],
@@ -292,12 +299,9 @@ function ComparisonView({ comparison, evidence, caveat, experiment }: { comparis
     ['Retries', comparison.deltas.retries.baseline, comparison.deltas.retries.candidate, compact],
   ]
   return React.createElement('div', { className: 'dproof-results' },
-    React.createElement('div', { className: 'dproof-verdict' },
-      React.createElement('strong', null, comparison.baseline.failure?.phase === 'startup' || comparison.candidate.failure?.phase === 'startup'
-        ? 'Invalid comparison: Agent startup failed'
-        : comparison.baseline.metrics.outcome === 'unknown' && comparison.candidate.metrics.outcome === 'unknown' ? 'Task outcome: undetermined' : `Explicit check: ${comparison.baseline.metrics.outcome} → ${comparison.candidate.metrics.outcome}`),
-      React.createElement('span', null, caveat || 'A completed run is not proof that the task succeeded.'),
-    ),
+    React.createElement(ReportOverview, { report: safe }),
+    React.createElement(ReportActions, { report }),
+    caveat ? React.createElement('div', { className: 'dproof-muted' }, caveat) : null,
     comparison.baseline.failure || comparison.candidate.failure ? React.createElement('section', { className: 'dproof-section' },
       React.createElement('div', { className: 'dproof-section-head' }, React.createElement('strong', null, 'Agent failures')),
       React.createElement('div', { className: 'dproof-diffs' },
@@ -353,12 +357,15 @@ function ComparisonView({ comparison, evidence, caveat, experiment }: { comparis
         `Preview redaction applied · ${safe.exportManifest.redaction.matches} secret-like value(s) hidden · source: canonical session log`,
       ),
     ),
-    React.createElement('div', { className: 'dproof-export' },
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'json') }, 'JSON'),
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'html') }, 'HTML'),
+  )
+}
+
+function ReportActions({ report }: { report: ReturnType<typeof createProofReport> }): React.ReactElement {
+  return React.createElement('div', { className: 'dproof-export' },
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'html') }, 'Download report · HTML'),
+      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'json') }, 'Evidence · JSON'),
       React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'svg') }, 'SVG card'),
       React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => void downloadPng(report) }, 'PNG card'),
-    ),
   )
 }
 
@@ -416,7 +423,7 @@ function DiffList({ label, evidence }: { label: string; evidence: RunEvidence })
       React.createElement('summary', null, `Git snapshot · ${evidence.git.changedFiles} changed file(s)`),
       React.createElement('pre', null, `${evidence.git.status || '(clean)'}\n\n${evidence.git.diff || '(no tracked diff)'}`),
     ) : null,
-    evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No write/edit diff metadata recorded') : null,
+    evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No tool-recorded edit metadata. Check the Git snapshot for final changes.') : null,
   )
 }
 
@@ -457,12 +464,12 @@ async function downloadPng(report: ReturnType<typeof createProofReport>): Promis
     image.src = source
     await image.decode()
     const canvas = document.createElement('canvas')
-    canvas.width = 1440
-    canvas.height = 680
+    canvas.width = image.naturalWidth * 2
+    canvas.height = image.naturalHeight * 2
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Canvas is unavailable')
     context.scale(2, 2)
-    context.drawImage(image, 0, 0, 720, 340)
+    context.drawImage(image, 0, 0)
     const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('PNG export failed')), 'image/png'))
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

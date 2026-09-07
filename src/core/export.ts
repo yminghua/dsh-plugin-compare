@@ -1,6 +1,8 @@
 import type { ExperimentSummary } from './statistics.ts'
 import type { ComparisonEvidence, FileDiffEvidence, ProofComparison } from './types.ts'
 import { redactSecrets } from './redact.ts'
+import { reportHeadline, reportMetricCards, runIdentity } from './report-view.ts'
+import { reportStyles } from './report-styles.ts'
 
 export interface ExportManifest {
   source: 'canonical-session-log' | 'session-log-and-controlled-run'
@@ -61,43 +63,67 @@ export function renderProofHtml(report: ProofReport): string {
   const rows: Array<[string, string, string]> = [
     ['Execution', baseline.metrics.execution, candidate.metrics.execution],
     ['Task outcome', baseline.metrics.outcome, candidate.metrics.outcome],
-    ['Tokens', integer(deltas.totalTokens.baseline), integer(deltas.totalTokens.candidate)],
+    ['Recorded tokens · including cache', integer(deltas.totalTokens.baseline), integer(deltas.totalTokens.candidate)],
+    ['Input tokens', integer(baseline.metrics.tokens.input), integer(candidate.metrics.tokens.input)],
+    ['Output tokens', integer(baseline.metrics.tokens.output), integer(candidate.metrics.tokens.output)],
+    ['Cache read tokens', integer(baseline.metrics.tokens.cacheRead), integer(candidate.metrics.tokens.cacheRead)],
+    ['Cache write tokens', integer(baseline.metrics.tokens.cacheWrite), integer(candidate.metrics.tokens.cacheWrite)],
     ['Active time', duration(deltas.durationMs.baseline), duration(deltas.durationMs.candidate)],
     ['Steps', integer(deltas.steps.baseline), integer(deltas.steps.candidate)],
     ['Tool calls', integer(deltas.toolCalls.baseline), integer(deltas.toolCalls.candidate)],
     ['Tool failures', integer(deltas.failedToolCalls.baseline), integer(deltas.failedToolCalls.candidate)],
     ['Retries', integer(deltas.retries.baseline), integer(deltas.retries.candidate)],
+    ['Changed files', baseline.metrics.changedFiles === undefined ? 'Not recorded' : integer(baseline.metrics.changedFiles), candidate.metrics.changedFiles === undefined ? 'Not recorded' : integer(candidate.metrics.changedFiles)],
   ]
   const body = rows.map(([label, before, after]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(before)}</td><td>${escapeHtml(after)}</td></tr>`).join('')
   const failures = baseline.failure || candidate.failure ? `<section class="evidence"><h2>Agent failures</h2>${renderFailure('Baseline', baseline.failure)}${renderFailure('Candidate', candidate.failure)}</section>` : ''
-  const evidence = safe.evidence ? `<section class="evidence"><h2>Recorded file evidence</h2>${renderDiffColumn('Baseline', safe.evidence.baseline.fileDiffs)}${renderGit('Baseline Git snapshot', safe.evidence.baseline.git)}${renderDiffColumn('Candidate', safe.evidence.candidate.fileDiffs)}${renderGit('Candidate Git snapshot', safe.evidence.candidate.git)}</section>` : ''
+  const evidence = safe.evidence ? `<section class="evidence"><h2>Recorded file evidence</h2><p class="subtle">Git snapshots show final workspace changes. Missing write/edit metadata does not mean no files were changed.</p><div class="identities"><div>${renderGit('A · Baseline Git snapshot', safe.evidence.baseline.git)}${renderDiffColumn('A · Tool-recorded edits', safe.evidence.baseline.fileDiffs)}</div><div>${renderGit('B · Candidate Git snapshot', safe.evidence.candidate.git)}${renderDiffColumn('B · Tool-recorded edits', safe.evidence.candidate.fileDiffs)}</div></div></section>` : ''
   const experiment = safe.experiment ? renderExperiment(safe.experiment) : ''
+  const identities = `<div class="identities">${renderIdentity('A · Baseline', baseline)}${renderIdentity('B · Candidate', candidate)}</div>`
+  const metrics = `<div class="kpis">${reportMetricCards(safe.comparison).map((metric) => `<article><span>${metric.label}</span><strong>${metric.after}</strong><small>A ${metric.before} → B ${metric.after}</small><b>${metric.change} vs A</b></article>`).join('')}</div>`
+  const sample = safe.experiment ? `${safe.experiment.trials} paired trial(s) · ${safe.experiment.trials === 1 ? 'Single observation, not a stable plugin ranking.' : 'Cards and detail table show the first pair; repeated-trial statistics appear below.'}` : 'Recorded session comparison · uncontrolled differences may affect results.'
+  const checks = `<section class="evidence"><h2>Success checks</h2><p class="subtle">These checks verify their covered cases, not every possible requirement.</p><div class="identities">${renderCheck('A · Baseline', baseline.check)}${renderCheck('B · Candidate', candidate.check)}</div></section>`
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DSH Proof · ${escapeHtml(baseline.label)} vs ${escapeHtml(candidate.label)}</title>
-<style>body{margin:0;background:#0b1020;color:#e8ecf7;font:15px/1.5 ui-sans-serif,system-ui,sans-serif}.wrap{max-width:900px;margin:48px auto;padding:0 20px}.card{border:1px solid #29324d;border-radius:18px;background:#121a2e;overflow:hidden;box-shadow:0 24px 80px #0008}.head{padding:24px;border-bottom:1px solid #29324d}.eyebrow{color:#8fa5d9;font-size:12px;text-transform:uppercase;letter-spacing:.12em}h1{margin:6px 0 0;font-size:25px}.note{margin:18px 0;padding:12px 14px;border-radius:10px;background:#1a2542;color:#b8c3df;font-size:13px}table{width:100%;border-collapse:collapse}th,td{padding:12px 18px;border-top:1px solid #29324d;text-align:right}th:first-child{text-align:left;color:#aeb9d3;font-weight:500}thead th{border-top:0;background:#17213a;color:#8fa5d9;font-size:12px}.evidence{padding:20px 24px;border-top:1px solid #29324d}.evidence h2{font-size:16px}.diff{margin:12px 0;padding:12px;border-radius:10px;background:#0b1020;overflow:auto}.diff h3{margin:0 0 8px;color:#8fa5d9;font-size:12px}.diff strong{display:block;margin:10px 0 4px;font-size:12px}.diff pre{margin:0;white-space:pre-wrap;font:11px/1.45 ui-monospace,monospace;color:#b8c3df}footer{padding:16px 24px;color:#7784a5;font-size:12px}</style></head>
-<body><main class="wrap"><section class="card"><header class="head"><div class="eyebrow">DSH Proof · measured facts</div><h1>${escapeHtml(baseline.label)} <span aria-hidden="true">→</span> ${escapeHtml(candidate.label)}</h1><p class="note">${escapeHtml(safe.disclaimer)}</p></header><table><thead><tr><th>Metric</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody>${body}</tbody></table>${failures}${experiment}${evidence}<footer>Generated ${escapeHtml(safe.generatedAt)} · Schema v${safe.schemaVersion} · ${safe.exportManifest.redaction.matches} secret-like value(s) redacted</footer></section></main></body></html>`
+<title>DSH Proof · ${escapeHtml(runIdentity(baseline).name)} vs ${escapeHtml(runIdentity(candidate).name)}</title>
+<style>${reportStyles}</style></head>
+<body><main class="wrap"><header class="masthead"><b>DSH / PROOF</b><span>Plugin comparison report</span></header><section class="card"><header class="head"><div class="eyebrow">MEASURED EVIDENCE / NOT A LEADERBOARD</div><h1>${escapeHtml(runIdentity(baseline).name)} <span>vs</span> ${escapeHtml(runIdentity(candidate).name)}</h1>${identities}<div class="verdict"><strong>${escapeHtml(reportHeadline(safe.comparison))}</strong><span>${escapeHtml(sample)}</span></div>${metrics}<p class="subtle">Token totals include input, output, cache reads and cache writes. Token change is not a cost saving.</p></header><section class="evidence"><h2>Metric details <small>A → B${safe.experiment && safe.experiment.trials > 1 ? ' · first pair' : ''}</small></h2><div class="table-scroll"><table><thead><tr><th>Metric</th><th>A · Baseline</th><th>B · Candidate</th></tr></thead><tbody>${body}</tbody></table></div></section>${failures}${experiment}${checks}${evidence}<footer><p>${escapeHtml(safe.disclaimer)}</p><span>Generated ${escapeHtml(safe.generatedAt)} · Schema v${safe.schemaVersion} · ${safe.exportManifest.redaction.matches} secret-like value(s) redacted</span></footer></section></main></body></html>`
+}
+
+function renderIdentity(role: string, run: ProofComparison['baseline']): string {
+  const identity = runIdentity(run)
+  return `<article class="identity"><span class="eyebrow">${role}</span><h2>${escapeHtml(identity.name)}</h2>${identity.version ? `<b class="version">v${escapeHtml(identity.version)}</b>` : ''}<p>Preset: ${escapeHtml(identity.preset)}${identity.presetId ? ` · <code>${escapeHtml(identity.presetId)}</code>` : ''}</p><p>${escapeHtml(run.provider ?? 'Provider not recorded')} / ${escapeHtml(run.model ?? 'Model not recorded')}</p><small>${escapeHtml(identity.source)}</small><div class="badge">Execution: ${escapeHtml(run.metrics.execution)} · Check: ${escapeHtml(run.check?.status ?? 'not configured')}</div></article>`
+}
+
+function renderCheck(role: string, check: ProofComparison['baseline']['check']): string {
+  if (!check) return `<article class="diff"><h3>${role}</h3><p>Not configured</p></article>`
+  return `<article class="diff"><h3>${role} · ${escapeHtml(check.status)}</h3><code>${escapeHtml(check.command)}</code><p>Exit code: ${check.exitCode ?? 'not available'} · ${duration(check.durationMs)}</p><details><summary>Test output</summary><pre>${escapeHtml(check.output || '(no output)')}</pre></details></article>`
 }
 
 export function renderProofSvg(report: ProofReport): string {
   const safe = sanitizeProofReport(report)
   const { baseline, candidate, deltas } = safe.comparison
-  const labels = ['Tokens', 'Active time', 'Tool failures', 'Retries']
+  const labels = ['Recorded tokens (incl. cache)', 'Agent time', 'Tool calls', 'Tool failures']
   const values = [
     [integer(deltas.totalTokens.baseline), integer(deltas.totalTokens.candidate)],
     [duration(deltas.durationMs.baseline), duration(deltas.durationMs.candidate)],
+    [integer(deltas.toolCalls.baseline), integer(deltas.toolCalls.candidate)],
     [integer(deltas.failedToolCalls.baseline), integer(deltas.failedToolCalls.candidate)],
-    [integer(deltas.retries.baseline), integer(deltas.retries.candidate)],
   ]
   const rows = labels.map((label, index) => {
-    const y = 164 + index * 38
-    return `<text x="32" y="${y}" class="label">${label}</text><text x="430" y="${y}" class="value">${values[index]?.[0]}</text><text x="688" y="${y}" class="value">${values[index]?.[1]}</text>`
+    const y = 336 + index * 32
+    return `<line x1="32" y1="${y + 12}" x2="928" y2="${y + 12}" stroke="#e0e8ec"/><text x="32" y="${y}" class="label">${label}</text><text x="620" y="${y}" class="value">${values[index]?.[0]}</text><text x="906" y="${y}" class="value">${values[index]?.[1]}</text>`
   }).join('')
   const trialLabel = safe.experiment ? ` · ${safe.experiment.trials} paired trials` : ''
   const footer = baseline.failure?.phase === 'startup' || candidate.failure?.phase === 'startup'
     ? 'INVALID COMPARISON · AGENT STARTUP FAILED'
     : `Explicit outcome: ${baseline.metrics.outcome} → ${candidate.metrics.outcome} · winner: ${safe.comparison.winner}${trialLabel}`
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" role="img" aria-label="DSH Proof comparison card"><style>.title{font:700 24px system-ui;fill:#eef2ff}.small{font:12px system-ui;fill:#8fa5d9}.label{font:13px system-ui;fill:#aeb9d3}.value{font:600 13px ui-monospace,monospace;fill:#eef2ff;text-anchor:end}</style><rect width="720" height="340" rx="20" fill="#121a2e"/><rect x="1" y="1" width="718" height="338" rx="19" fill="none" stroke="#29324d"/><text x="32" y="42" class="small">DSH PROOF · MEASURED FACTS</text><text x="32" y="76" class="title">${escapeHtml(shorten(baseline.label, 24))} → ${escapeHtml(shorten(candidate.label, 24))}</text><text x="430" y="120" class="small" text-anchor="end">BASELINE</text><text x="688" y="120" class="small" text-anchor="end">CANDIDATE</text>${rows}<text x="32" y="316" class="small">${escapeHtml(footer)}</text></svg>`
+  const identities = [baseline, candidate].map((run, index) => {
+    const identity = runIdentity(run)
+    const x = 32 + index * 456
+    return `<g><title>${escapeHtml(identity.name)} · ${escapeHtml(identity.preset)}</title><rect x="${x}" y="92" width="440" height="147" rx="10" fill="${index ? '#f0f7f5' : '#f4f7f8'}"/><text x="${x + 16}" y="116" class="small">${index ? 'B · CANDIDATE' : 'A · BASELINE'}</text><text x="${x + 16}" y="150" class="name">${escapeHtml(shorten(identity.name, 24))}</text><text x="${x + 16}" y="176" class="small">${escapeHtml(shorten(`${identity.version ? `v${identity.version} · ` : ''}Preset: ${identity.preset}`, 42))}</text><text x="${x + 16}" y="200" class="small">${escapeHtml(shorten(run.model ?? 'Model not recorded', 48))}</text><text x="${x + 16}" y="222" class="small">Check: ${escapeHtml(run.check?.status ?? 'not configured')}</text></g>`
+  }).join('')
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="DSH Proof plugin comparison card"><style>.title{font:650 24px system-ui;fill:#18333f}.name{font:650 20px system-ui;fill:#18333f}.small{font:11px system-ui;fill:#59717e}.label{font:13px system-ui;fill:#496370}.value{font:600 14px ui-monospace,monospace;fill:#18333f;text-anchor:end}</style><rect width="960" height="540" rx="20" fill="#fff"/><rect x="1" y="1" width="958" height="538" rx="19" fill="none" stroke="#dce6ea"/><text x="32" y="32" class="small">DSH / PROOF · PLUGIN COMPARISON</text><text x="32" y="66" class="title">${escapeHtml(reportHeadline(safe.comparison))}</text>${identities}<text x="32" y="272" class="small">${safe.experiment && safe.experiment.trials > 1 ? 'FIRST PAIR · see HTML for aggregate statistics' : 'SINGLE COMPARISON · not a stable plugin ranking'}</text><text x="620" y="302" class="small" text-anchor="end">A · BASELINE</text><text x="906" y="302" class="small" text-anchor="end">B · CANDIDATE</text>${rows}<text x="32" y="476" class="small">${escapeHtml(footer)}</text><text x="32" y="502" class="small">Token totals include cache activity, not monetary cost. Tests cover only their asserted cases.</text><text x="32" y="522" class="small">${escapeHtml(shorten(`${runIdentity(baseline).source} / ${runIdentity(candidate).source}`, 130))}</text></svg>`
 }
 
 function renderFailure(label: string, failure: ProofComparison['baseline']['failure']): string {
@@ -107,13 +133,13 @@ function renderFailure(label: string, failure: ProofComparison['baseline']['fail
 }
 
 function renderDiffColumn(label: string, diffs: FileDiffEvidence[]): string {
-  if (diffs.length === 0) return `<div class="diff"><h3>${label}</h3><pre>No recorded write/edit diff evidence.</pre></div>`
-  return `<div class="diff"><h3>${label}</h3>${diffs.map((diff) => `<strong>${escapeHtml(diff.path)}</strong><pre>- ${escapeHtml(diff.oldText ?? '(new file)')}\n+ ${escapeHtml(diff.newText)}</pre>`).join('')}</div>`
+  if (diffs.length === 0) return `<div class="diff"><h3>${label}</h3><p class="subtle">No tool-recorded edit metadata. Check the Git snapshot for final changes.</p></div>`
+  return `<details class="diff"><summary>${label} · ${diffs.length} record(s)</summary>${diffs.map((diff) => `<strong>${escapeHtml(diff.path)}</strong><pre>- ${escapeHtml(diff.oldText ?? '(new file)')}\n+ ${escapeHtml(diff.newText)}</pre>`).join('')}</details>`
 }
 
 function renderGit(label: string, git: ComparisonEvidence['baseline']['git']): string {
   if (!git?.available) return ''
-  return `<div class="diff"><h3>${escapeHtml(label)}</h3><strong>Status</strong><pre>${escapeHtml(git.status || '(clean)')}</pre><strong>Tracked diff</strong><pre>${escapeHtml(git.diff || '(none)')}</pre></div>`
+  return `<details class="diff"><summary>${escapeHtml(label)} · ${git.changedFiles} changed file(s)</summary><strong>Status</strong><pre>${escapeHtml(git.status || '(clean)')}</pre><strong>Tracked diff</strong><pre>${escapeHtml(git.diff || '(none)')}</pre></details>`
 }
 
 function renderExperiment(summary: ExperimentSummary): string {

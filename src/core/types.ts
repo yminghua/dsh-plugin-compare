@@ -27,6 +27,10 @@ export interface ProofRun {
   label: string
   sessionId?: string
   plugin?: string
+  pluginVersion?: string
+  pluginSource?: 'package-manifest' | 'preset-registration' | 'report-label'
+  presetId?: string
+  presetName?: string
   cwd?: string
   model?: string
   provider?: string
