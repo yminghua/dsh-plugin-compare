@@ -10,7 +10,7 @@
 
 ## Installation
 
-Requires Node.js 22.19+ and a DSH Web profile. While the package is in prerelease, install the `next` channel:
+Requires Node.js 22.19+ and a DSH Web profile. While the package is in prerelease, explicitly install the `next` channel:
 
 ```bash
 dsh plugin --profile web add dsh-plugin-compare@next
@@ -22,6 +22,8 @@ Stable releases use the unqualified package name:
 ```bash
 dsh plugin --profile web add dsh-plugin-compare
 ```
+
+npm requires every published package to have a `latest` tag. Because the alpha is currently the package's first and only published version, an unqualified install may also resolve to the alpha; treat it as a prerelease and use `@next` explicitly until the first stable release moves `latest` to a stable version.
 
 Update or remove the installed package with the same profile:
 

@@ -8,7 +8,7 @@
 
 ## 安装
 
-需要 Node.js 22.19+ 和 DSH Web profile。当前仍是预发布版本，请安装 `next` 通道：
+需要 Node.js 22.19+ 和 DSH Web profile。当前仍是预发布版本，请显式安装 `next` 通道：
 
 ```bash
 dsh plugin --profile web add dsh-plugin-compare@next
@@ -20,6 +20,8 @@ dsh web
 ```bash
 dsh plugin --profile web add dsh-plugin-compare
 ```
+
+npm 要求每个已发布的包都存在 `latest` 标签。当前 alpha 是该包唯一的已发布版本，因此不带 dist-tag 的安装也可能解析到 alpha；请将其视为预发布版本，并在首个稳定版把 `latest` 移到稳定版本之前显式使用 `@next`。
 
 在同一个 profile 中升级或卸载：
 
