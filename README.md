@@ -8,6 +8,30 @@
 
 中文文档: [README.zh.md](./README.zh.md)
 
+## Installation
+
+Requires Node.js 22.19+ and a DSH Web profile. While the package is in prerelease, install the `next` channel:
+
+```bash
+dsh plugin --profile web add dsh-plugin-compare@next
+dsh web
+```
+
+Stable releases use the unqualified package name:
+
+```bash
+dsh plugin --profile web add dsh-plugin-compare
+```
+
+Update or remove the installed package with the same profile:
+
+```bash
+dsh plugin --profile web update dsh-plugin-compare@next
+dsh plugin --profile web remove dsh-plugin-compare
+```
+
+After installing, updating, or removing the plugin, stop any running Web Host with `Ctrl+C` and start `dsh web` again. The Compare panel is then available in DSH Web.
+
 ## Try the checkout example
 
 Follow the [step-by-step walkthrough (Chinese)](./example/README.md): create a fresh intentionally broken checkout project, compare Standard and `dsh-expert-mode`, inspect the checks, and save screenshots and reports. A reviewed real-run [HTML report](./example/results/checkout-demo.html) and [screenshots](./example/screenshots/README.md) are included. The fixture needs no third-party dependencies; model-backed runs still consume tokens. Run `node example/prepare.mjs` from this repository to prepare a fresh workspace without changing the fixture.
@@ -35,7 +59,7 @@ Exports can contain prompts, source paths, code diffs, command output, provider/
 
 ## Development
 
-Requirements: Node.js 22.19+ and pnpm 11.19.
+Contributor requirements: Node.js 22.19+ and pnpm 11.19.
 
 ```bash
 pnpm install
