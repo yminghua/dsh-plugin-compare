@@ -19,6 +19,7 @@ test('compatibility manifest stays aligned with package and CI', () => {
 
 test('release workflow selects next for prereleases and latest for stable versions', () => {
   assert.match(releaseWorkflow, /version\.includes\("-"\) \? "next" : "latest"/)
-  assert.match(releaseWorkflow, /--tag "\$\{\{ steps\.npm-dist-tag\.outputs\.tag \}\}"/)
+  assert.match(releaseWorkflow, /npm install --global npm@11\.16\.0/)
+  assert.match(releaseWorkflow, /npm publish --provenance --tag "\$\{\{ steps\.npm-dist-tag\.outputs\.tag \}\}"/)
   assert.match(releaseWorkflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/)
 })

@@ -13,17 +13,19 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.19.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
+      - name: Install OIDC-capable npm CLI
+        run: npm install --global npm@11.16.0
       - name: Require tag to match package version
         run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
       - name: Select npm dist-tag
@@ -31,6 +33,6 @@ jobs:
         run: |
           echo "tag=$(node -p 'require("./package.json").version.includes("-") ? "next" : "latest"')" >> "$GITHUB_OUTPUT"
       - name: Publish to npm
-        run: pnpm publish --provenance --no-git-checks --tag "${{ steps.npm-dist-tag.outputs.tag }}"
+        run: npm publish --provenance --tag "${{ steps.npm-dist-tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
