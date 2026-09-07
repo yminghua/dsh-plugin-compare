@@ -34,3 +34,14 @@ jobs:
         run: pnpm publish --provenance --no-git-checks --tag "${{ steps.npm-dist-tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Keep prerelease off latest
+        if: steps.npm-dist-tag.outputs.tag == 'next'
+        run: |
+          package_name=$(node -p 'require("./package.json").name')
+          package_version=$(node -p 'require("./package.json").version')
+          latest=$(npm view "$package_name" dist-tags.latest --json | tr -d '"')
+          if [ "$latest" = "$package_version" ]; then
+            npm dist-tag rm "$package_name" latest
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

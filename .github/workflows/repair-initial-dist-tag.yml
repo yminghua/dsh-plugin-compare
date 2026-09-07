@@ -1,0 +1,28 @@
+name: Repair initial npm dist-tag
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/repair-initial-dist-tag.yml
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          registry-url: https://registry.npmjs.org
+      - name: Remove accidental latest tag from initial prerelease
+        run: |
+          latest=$(npm view dsh-plugin-compare dist-tags.latest --json | tr -d '"')
+          if [ "$latest" = "0.1.0-alpha.1" ]; then
+            npm dist-tag rm dsh-plugin-compare latest
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
