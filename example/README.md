@@ -4,7 +4,7 @@
 
 这里比较的是两套 Agent Preset 配置，不是保证只改变一个变量的因果实验。目标是学会使用 DSH Plugin Compare，不是预设专家模式一定获胜。
 
-> 录制状态：教程与故障 fixture 已就绪。旧名称下生成的截图和报告已经移除；新版素材会在 `dsh-plugin-compare` 完成重命名后重新录制，当前不预填任何运行结果。
+> 录制状态：教程、故障 fixture 和一组审核后的 `dsh-plugin-compare` 真实运行[截图](./screenshots/README.md)与[报告](./results/README.md)均已就绪。该单组结果用于演示工作流，不代表稳定排名。
 
 ## 目录与注意事项
 
@@ -13,8 +13,8 @@
 - `prompt.txt`：两组使用的同一条任务提示。
 - `.work/`：生成的演示工作区，Git 忽略。
 - `captures/`：本地原始截图、报告和运行记录，Git 忽略。
-- `screenshots/`：预留给审核后的操作截图，目前等待重新录制。
-- `results/`：预留给审核并脱敏的 HTML、JSON、PNG 和 SVG 报告，目前为空。
+- `screenshots/`：审核后的操作截图与初始测试记录。
+- `results/`：审核并脱敏的 HTML、JSON、PNG 和 SVG 报告。
 
 样例不需要第三方依赖，只用 Node.js。Agent 调用仍会消耗模型额度。只在这个专用测试项目和可信 Preset 上运行；临时工作区副本不是安全沙箱。测试文件不由框架强制锁定，因此最后还要检查它们有没有被改动。
 

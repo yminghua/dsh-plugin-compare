@@ -1,13 +1,22 @@
 # Public example reports
 
-This directory is reserved for reviewed outputs from the model-backed checkout walkthrough:
+This directory contains reviewed outputs from the model-backed checkout walkthrough captured on 2026-09-07:
 
-- `checkout-demo.html` — self-contained readable report;
-- `checkout-demo.json` — detailed evidence;
-- `checkout-demo.png` — shareable card;
-- `checkout-demo.svg` — vector card.
+- [`checkout-demo.html`](checkout-demo.html) — self-contained readable report;
+- [`checkout-demo.json`](checkout-demo.json) — detailed evidence;
+- [`checkout-demo.png`](checkout-demo.png) — shareable card;
+- [`checkout-demo.svg`](checkout-demo.svg) — vector card.
 
-No report is currently published: the previous set used the old product name and was removed before the rename. The next recording must report its actual outcome; it does not need to produce a winner.
+Both variants completed and passed the 5-test success check. This is one paired observation: the candidate used fewer tool calls but more time and recorded tokens, and the report correctly keeps `winner: undetermined` rather than asserting a stable ranking.
+
+| Input | Recorded value |
+| --- | --- |
+| dsh-plugin-compare commit | `969e4e1804e0b95e2312c891aad686afb45297f8` |
+| DSH | `0.1.1-rc.2` |
+| Provider / model | `deepseek-official` / `deepseek-v4-flash` |
+| Baseline | `standard` / 标准模式 |
+| Candidate | `dsh-expert-mode` `0.9.2` / `expert-mode` |
+| Trials | 1 paired observation |
 
 Keep original exports in `example/captures/<run>/` first (ignored by Git). Save:
 
@@ -20,4 +29,4 @@ Before publishing copies here, review code, command output, credentials, account
 Automatic secret redaction is incomplete. A report with `matches: 0` is not a privacy clearance.
 If publishing modified copies, state what was removed or annotated and do not change measurements.
 
-Publication copies must replace machine-local workspace and temporary-run prefixes without changing metrics, session evidence, test output, diffs, plugin identity, or provenance. Do not retroactively claim inferred labels were captured during execution.
+For these publication copies, the machine-local workspace was replaced with `/demo-workspace` and the temporary controlled-run prefix with `example-run`. Metrics, session evidence, test output, diffs, plugin identity, and provenance were not changed. Do not retroactively claim inferred labels were captured during execution.
