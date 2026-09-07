@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { readPresetIdentity } from '../src/host/identity.ts'
 
 test('identifies copied preset bundles from registration metadata, not their display names', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'proof-identity-'))
+  const root = await mkdtemp(join(tmpdir(), 'comparison-identity-'))
   const preset = { id: 'expert-mode', name: '专家模式 v0.9.2', path: join(root, 'agent.cordis.yml') }
   try {
     await writeFile(preset.path, '[]')
@@ -29,5 +29,5 @@ test('identifies copied preset bundles from registration metadata, not their dis
 
 test('missing metadata never breaks preset loading', async () => {
   assert.deepEqual(await readPresetIdentity({ id: 'standard' }), { presetId: 'standard', presetName: 'standard' })
-  assert.equal((await readPresetIdentity({ id: 'expert-mode', name: 'dsh-expert-mode', path: '/missing/proof-test.yml' })).plugin, undefined)
+  assert.equal((await readPresetIdentity({ id: 'expert-mode', name: 'dsh-expert-mode', path: '/missing/comparison-test.yml' })).plugin, undefined)
 })

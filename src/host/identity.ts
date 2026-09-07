@@ -1,9 +1,9 @@
 import { open, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { parseDocument } from 'yaml'
-import type { ProofRun } from '../core/types.ts'
+import type { ComparisonRun } from '../core/types.ts'
 
-type Identity = Pick<ProofRun, 'presetId' | 'presetName' | 'plugin' | 'pluginVersion'> & { pluginSource?: 'package-manifest' | 'preset-registration' }
+type Identity = Pick<ComparisonRun, 'presetId' | 'presetName' | 'plugin' | 'pluginVersion'> & { pluginSource?: 'package-manifest' | 'preset-registration' }
 
 async function metadata(path: string): Promise<Record<string, unknown> | unknown[] | null> {
   try {

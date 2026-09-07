@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
 
 test('checkout example stays intentionally broken and preparation creates independent clean Git workspaces', async () => {
-  const parent = await mkdtemp(join(tmpdir(), 'proof-example-test-'))
+  const parent = await mkdtemp(join(tmpdir(), 'comparison-example-test-'))
   try {
     const prepare = () => JSON.parse(execFileSync(process.execPath, ['example/prepare.mjs', '--output-root', parent, '--json'], { cwd: root, encoding: 'utf8' }))
     const first = prepare()

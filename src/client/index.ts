@@ -1,12 +1,12 @@
 import React from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CompareSessionsResult, ControlledRunResult, ControlledProgress, ModelProviderItem, PresetListItem, SessionListItem } from '../shared/protocol.ts'
-import { createProofReport, renderProofHtml, renderProofSvg, sanitizeProofReport, serializeProofReport, type ComparisonEvidence, type ExperimentSummary, type PairedDeltaSummary, type ProofComparison, type RunEvidence } from '../core/index.ts'
+import { createComparisonReport, renderComparisonHtml, renderComparisonSvg, sanitizeComparisonReport, serializeComparisonReport, type ComparisonEvidence, type ExperimentSummary, type PairedDeltaSummary, type RunComparison, type RunEvidence } from '../core/index.ts'
 import './types.ts'
 import '../shared/cordis.ts'
 import { injectStyles } from './styles.ts'
-import { requestProofPanel, subscribeProofPanel } from './ui-state.ts'
-import { loadProofOptions, rpc } from './options.ts'
+import { requestComparisonPanel, subscribeComparisonPanel } from './ui-state.ts'
+import { loadComparisonOptions, rpc } from './options.ts'
 import { RunProgressView, watchProgress } from './progress.ts'
 import { ReportOverview } from './report-overview.ts'
 
@@ -16,23 +16,23 @@ export function apply(ctx: Context): void {
   injectStyles()
   ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register(
     { name: 'conversation.session.header.actions', id: 'dsh-plugin-compare', order: 40 },
-    (props: { sessionId?: string }) => React.createElement(ProofAction, props),
+    (props: { sessionId?: string }) => React.createElement(ComparisonAction, props),
   ))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
     { name: 'shell.overlay', id: 'dsh-plugin-compare', order: 40 },
-    () => React.createElement(ProofPanel, { ctx }),
+    () => React.createElement(ComparisonPanel, { ctx }),
   ))
 }
 
-function ProofAction(props: { sessionId?: string }): React.ReactElement {
+function ComparisonAction(props: { sessionId?: string }): React.ReactElement {
   return React.createElement('button', {
     type: 'button',
-    className: 'dproof-button',
-    onClick: () => requestProofPanel(props.sessionId),
+    className: 'dcompare-button',
+    onClick: () => requestComparisonPanel(props.sessionId),
   }, 'Compare')
 }
 
-function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
+function ComparisonPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [open, setOpen] = React.useState(false)
   const [sessions, setSessions] = React.useState<SessionListItem[]>([])
   const [presets, setPresets] = React.useState<PresetListItem[]>([])
@@ -42,7 +42,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   const [mode, setMode] = React.useState<'sessions' | 'controlled'>('sessions')
   const [baselineId, setBaselineId] = React.useState('')
   const [candidateId, setCandidateId] = React.useState('')
-  const [comparison, setComparison] = React.useState<ProofComparison | null>(null)
+  const [comparison, setComparison] = React.useState<RunComparison | null>(null)
   const [evidence, setEvidence] = React.useState<ComparisonEvidence | null>(null)
   const [sourceDir, setSourceDir] = React.useState('')
   const [prompt, setPrompt] = React.useState('')
@@ -66,7 +66,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     setBusy(true)
     setError('')
     try {
-      const loaded = await loadProofOptions(ctx)
+      const loaded = await loadComparisonOptions(ctx)
       // A failed resource must not discard successful resources or retain stale choices.
       const result = loaded.sessions.status === 'fulfilled' ? loaded.sessions.value : { sessions: [] }
       const presetResult = loaded.presets.status === 'fulfilled' ? loaded.presets.value : { presets: [] }
@@ -99,7 +99,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
     }
   }, [ctx])
 
-  React.useEffect(() => subscribeProofPanel((request) => {
+  React.useEffect(() => subscribeComparisonPanel((request) => {
     setOpen(true)
     if (activeRun.current) return
     setRunStartedAt(0)
@@ -171,29 +171,29 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   }, [baselinePreset, candidatePreset, ctx, modelId, modelProvider, presets, prompt, sourceDir, successCommand, trials])
 
   if (!open) return null
-  return React.createElement('section', { className: 'dproof-panel', 'aria-label': 'DSH Plugin Compare' },
-    React.createElement('header', { className: 'dproof-head' },
-      React.createElement('span', { className: 'dproof-title' }, 'DSH Plugin Compare'),
-      React.createElement('span', { className: 'dproof-fact' }, 'Measured facts only'),
-      React.createElement('button', { type: 'button', className: 'dproof-close', onClick: () => setOpen(false), 'aria-label': 'Close' }, '×'),
+  return React.createElement('section', { className: 'dcompare-panel', 'aria-label': 'DSH Plugin Compare' },
+    React.createElement('header', { className: 'dcompare-head' },
+      React.createElement('span', { className: 'dcompare-title' }, 'DSH Plugin Compare'),
+      React.createElement('span', { className: 'dcompare-fact' }, 'Measured facts only'),
+      React.createElement('button', { type: 'button', className: 'dcompare-close', onClick: () => setOpen(false), 'aria-label': 'Close' }, '×'),
     ),
-    React.createElement('div', { className: 'dproof-body' },
-      React.createElement('div', { className: 'dproof-tabs' },
+    React.createElement('div', { className: 'dcompare-body' },
+      React.createElement('div', { className: 'dcompare-tabs' },
         tab('Existing sessions', mode === 'sessions', () => { setMode('sessions'); setComparison(null); setEvidence(null); setExperiment(null) }, busy),
         tab('Controlled A/B', mode === 'controlled', () => { setMode('controlled'); setComparison(null); setEvidence(null); setExperiment(null) }, busy),
       ),
       runStartedAt ? React.createElement(RunProgressView, { progress: runProgress, startedAt: runStartedAt, receivedAt: progressReceivedAt, issue: progressIssue }) : null,
       mode === 'sessions' ? React.createElement(React.Fragment, null,
-        React.createElement('div', { className: 'dproof-columns' },
+        React.createElement('div', { className: 'dcompare-columns' },
           sessionPicker('Baseline', baselineId, sessions, setBaselineId),
           sessionPicker('Candidate', candidateId, sessions, setCandidateId),
         ),
         React.createElement('button', {
-          type: 'button', className: 'dproof-compare',
+          type: 'button', className: 'dcompare-compare',
           disabled: busy || !baselineId || !candidateId || baselineId === candidateId,
           onClick: () => void compare(),
         }, busy ? 'Reading evidence…' : 'Compare sessions'),
-      ) : React.createElement(comparison ? 'details' : 'div', { className: 'dproof-configuration' },
+      ) : React.createElement(comparison ? 'details' : 'div', { className: 'dcompare-configuration' },
       comparison ? React.createElement('summary', null, 'Experiment configuration · expand to run again') : null,
       React.createElement(ControlledForm, {
         presets, sourceDir, setSourceDir, prompt, setPrompt, baselinePreset, setBaselinePreset,
@@ -202,10 +202,10 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
         trials, setTrials,
         onRun: () => void runControlled(),
       })),
-      error ? React.createElement('div', { className: 'dproof-error', role: 'alert' }, error) : null,
+      error ? React.createElement('div', { className: 'dcompare-error', role: 'alert' }, error) : null,
       comparison && evidence ? React.createElement(ComparisonView, { comparison, evidence, caveat: designCaveat, ...(experiment ? { experiment } : {}) }) : React.createElement(
         'div',
-        { className: 'dproof-empty' },
+        { className: 'dcompare-empty' },
         mode === 'controlled'
           ? 'Both variants receive the same prompt in separate temporary workspace copies. Running may use model tokens and execute the optional check command.'
           : sessions.length < 2 ? 'At least two sessions are needed for a comparison.' : 'Choose two sessions to compare their recorded execution facts.',
@@ -215,7 +215,7 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
 }
 
 function tab(label: string, active: boolean, onClick: () => void, disabled: boolean): React.ReactElement {
-  return React.createElement('button', { type: 'button', className: `dproof-tab${active ? ' is-active' : ''}`, onClick, disabled }, label)
+  return React.createElement('button', { type: 'button', className: `dcompare-tab${active ? ' is-active' : ''}`, onClick, disabled }, label)
 }
 
 interface ControlledFormProps {
@@ -233,7 +233,7 @@ interface ControlledFormProps {
 }
 
 function ControlledForm(props: ControlledFormProps): React.ReactElement {
-  const preset = (label: string, value: string, onChange: (value: string) => void) => React.createElement('label', { className: 'dproof-field' },
+  const preset = (label: string, value: string, onChange: (value: string) => void) => React.createElement('label', { className: 'dcompare-field' },
     React.createElement('span', null, label),
     React.createElement('select', { value, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onChange(event.target.value) },
       React.createElement('option', { value: '' }, 'Select preset'),
@@ -245,29 +245,29 @@ function ControlledForm(props: ControlledFormProps): React.ReactElement {
     props.setModelProvider(provider)
     props.setModelId(props.modelProviders.find((item) => item.id === provider)?.models[0]?.id ?? '')
   }
-  return React.createElement('fieldset', { className: 'dproof-controlled', disabled: props.busy },
-    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Source workspace'), React.createElement('input', { value: props.sourceDir, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSourceDir(event.target.value), placeholder: '/absolute/project/path' })),
-    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Same prompt for both variants'), React.createElement('textarea', { value: props.prompt, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => props.setPrompt(event.target.value), rows: 4 })),
-    React.createElement('div', { className: 'dproof-columns' },
-      React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Model provider'), React.createElement('select', { value: props.modelProvider, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => selectProvider(event.target.value) },
+  return React.createElement('fieldset', { className: 'dcompare-controlled', disabled: props.busy },
+    React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Source workspace'), React.createElement('input', { value: props.sourceDir, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSourceDir(event.target.value), placeholder: '/absolute/project/path' })),
+    React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Same prompt for both variants'), React.createElement('textarea', { value: props.prompt, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => props.setPrompt(event.target.value), rows: 4 })),
+    React.createElement('div', { className: 'dcompare-columns' },
+      React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Model provider'), React.createElement('select', { value: props.modelProvider, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => selectProvider(event.target.value) },
         React.createElement('option', { value: '' }, 'Select provider'),
         ...props.modelProviders.map((item) => React.createElement('option', { key: item.id, value: item.id }, item.name)),
       )),
-      React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Model'),
-        React.createElement('input', { list: 'dproof-model-options', value: props.modelId, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setModelId(event.target.value), placeholder: 'Model id' }),
-        React.createElement('datalist', { id: 'dproof-model-options' }, ...models.map((item) => React.createElement('option', { key: item.id, value: item.id }, item.name))),
+      React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Model'),
+        React.createElement('input', { list: 'dcompare-model-options', value: props.modelId, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setModelId(event.target.value), placeholder: 'Model id' }),
+        React.createElement('datalist', { id: 'dcompare-model-options' }, ...models.map((item) => React.createElement('option', { key: item.id, value: item.id }, item.name))),
       ),
     ),
-    React.createElement('div', { className: 'dproof-columns' }, preset('Baseline preset', props.baselinePreset, props.setBaselinePreset), preset('Candidate preset', props.candidatePreset, props.setCandidatePreset)),
-    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Success check command · optional'), React.createElement('input', { value: props.successCommand, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSuccessCommand(event.target.value), placeholder: 'pnpm test' })),
-    React.createElement('label', { className: 'dproof-field' }, React.createElement('span', null, 'Paired trials · 1–10'), React.createElement('input', { type: 'number', min: 1, max: 10, value: props.trials, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setTrials(Math.min(10, Math.max(1, Number(event.target.value) || 1))) })),
-    React.createElement('div', { className: 'dproof-warning' }, `This explicitly runs ${props.trials * 2} agent session(s), creates fresh copies for every pair, and may consume model tokens. Pair order alternates.`),
-    React.createElement('button', { type: 'button', className: 'dproof-compare', disabled: props.busy || !props.sourceDir || !props.prompt || !props.modelProvider || !props.modelId || !props.baselinePreset || !props.candidatePreset, onClick: props.onRun }, props.busy ? `Running ${props.trials} paired trial(s)…` : 'Run controlled A/B'),
+    React.createElement('div', { className: 'dcompare-columns' }, preset('Baseline preset', props.baselinePreset, props.setBaselinePreset), preset('Candidate preset', props.candidatePreset, props.setCandidatePreset)),
+    React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Success check command · optional'), React.createElement('input', { value: props.successCommand, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setSuccessCommand(event.target.value), placeholder: 'pnpm test' })),
+    React.createElement('label', { className: 'dcompare-field' }, React.createElement('span', null, 'Paired trials · 1–10'), React.createElement('input', { type: 'number', min: 1, max: 10, value: props.trials, onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.setTrials(Math.min(10, Math.max(1, Number(event.target.value) || 1))) })),
+    React.createElement('div', { className: 'dcompare-warning' }, `This explicitly runs ${props.trials * 2} agent session(s), creates fresh copies for every pair, and may consume model tokens. Pair order alternates.`),
+    React.createElement('button', { type: 'button', className: 'dcompare-compare', disabled: props.busy || !props.sourceDir || !props.prompt || !props.modelProvider || !props.modelId || !props.baselinePreset || !props.candidatePreset, onClick: props.onRun }, props.busy ? `Running ${props.trials} paired trial(s)…` : 'Run controlled A/B'),
   )
 }
 
 function sessionPicker(label: string, value: string, sessions: SessionListItem[], onChange: (value: string) => void): React.ReactElement {
-  return React.createElement('label', { className: 'dproof-run' },
+  return React.createElement('label', { className: 'dcompare-run' },
     React.createElement('strong', null, label),
     React.createElement('select', {
       value,
@@ -282,10 +282,10 @@ function sessionPicker(label: string, value: string, sessions: SessionListItem[]
   )
 }
 
-export function ComparisonView({ comparison, evidence, caveat, experiment }: { comparison: ProofComparison; evidence: ComparisonEvidence; caveat?: string; experiment?: ExperimentSummary }): React.ReactElement {
+export function ComparisonView({ comparison, evidence, caveat, experiment }: { comparison: RunComparison; evidence: ComparisonEvidence; caveat?: string; experiment?: ExperimentSummary }): React.ReactElement {
   const [progress, setProgress] = React.useState(1)
-  const report = React.useMemo(() => createProofReport(comparison, evidence, undefined, experiment), [comparison, evidence, experiment])
-  const safe = React.useMemo(() => sanitizeProofReport(report), [report])
+  const report = React.useMemo(() => createComparisonReport(comparison, evidence, undefined, experiment), [comparison, evidence, experiment])
+  const safe = React.useMemo(() => sanitizeComparisonReport(report), [report])
   const rows: Array<[string, number, number, (value: number) => string]> = [
     ['Recorded tokens (incl. cache)', comparison.deltas.totalTokens.baseline, comparison.deltas.totalTokens.candidate, compact],
     ['Input tokens', comparison.baseline.metrics.tokens.input, comparison.candidate.metrics.tokens.input, compact],
@@ -298,98 +298,98 @@ export function ComparisonView({ comparison, evidence, caveat, experiment }: { c
     ['Tool failures', comparison.deltas.failedToolCalls.baseline, comparison.deltas.failedToolCalls.candidate, compact],
     ['Retries', comparison.deltas.retries.baseline, comparison.deltas.retries.candidate, compact],
   ]
-  return React.createElement('div', { className: 'dproof-results' },
+  return React.createElement('div', { className: 'dcompare-results' },
     React.createElement(ReportOverview, { report: safe }),
     React.createElement(ReportActions, { report }),
-    caveat ? React.createElement('div', { className: 'dproof-muted' }, caveat) : null,
-    comparison.baseline.failure || comparison.candidate.failure ? React.createElement('section', { className: 'dproof-section' },
-      React.createElement('div', { className: 'dproof-section-head' }, React.createElement('strong', null, 'Agent failures')),
-      React.createElement('div', { className: 'dproof-diffs' },
+    caveat ? React.createElement('div', { className: 'dcompare-muted' }, caveat) : null,
+    comparison.baseline.failure || comparison.candidate.failure ? React.createElement('section', { className: 'dcompare-section' },
+      React.createElement('div', { className: 'dcompare-section-head' }, React.createElement('strong', null, 'Agent failures')),
+      React.createElement('div', { className: 'dcompare-diffs' },
         React.createElement(FailureView, { label: 'Baseline', failure: safe.comparison.baseline.failure }),
         React.createElement(FailureView, { label: 'Candidate', failure: safe.comparison.candidate.failure }),
       ),
     ) : null,
     experiment ? React.createElement(ExperimentView, { summary: experiment }) : null,
-    React.createElement('div', { className: 'dproof-table' },
-      React.createElement('div', { className: 'dproof-row dproof-row-head' },
+    React.createElement('div', { className: 'dcompare-table' },
+      React.createElement('div', { className: 'dcompare-row dcompare-row-head' },
         React.createElement('span', null, 'Metric'),
         React.createElement('span', null, 'Baseline'),
         React.createElement('span', null, 'Candidate'),
       ),
-      ...rows.map(([label, baseline, candidate, format]) => React.createElement('div', { className: 'dproof-row', key: label },
+      ...rows.map(([label, baseline, candidate, format]) => React.createElement('div', { className: 'dcompare-row', key: label },
         React.createElement('span', null, label),
         React.createElement('span', null, format(baseline)),
         React.createElement('span', null, format(candidate)),
       )),
     ),
-    comparison.baseline.check || comparison.candidate.check ? React.createElement('section', { className: 'dproof-section' },
-      React.createElement('div', { className: 'dproof-section-head' }, React.createElement('strong', null, 'Explicit success checks')),
-      React.createElement('div', { className: 'dproof-diffs' },
+    comparison.baseline.check || comparison.candidate.check ? React.createElement('section', { className: 'dcompare-section' },
+      React.createElement('div', { className: 'dcompare-section-head' }, React.createElement('strong', null, 'Explicit success checks')),
+      React.createElement('div', { className: 'dcompare-diffs' },
         React.createElement(CheckView, { label: 'Baseline', check: safe.comparison.baseline.check }),
         React.createElement(CheckView, { label: 'Candidate', check: safe.comparison.candidate.check }),
       ),
     ) : null,
-    React.createElement('section', { className: 'dproof-section' },
-      React.createElement('div', { className: 'dproof-section-head' },
+    React.createElement('section', { className: 'dcompare-section' },
+      React.createElement('div', { className: 'dcompare-section-head' },
         React.createElement('strong', null, 'Synchronized timeline'),
         React.createElement('span', null, `${Math.round(progress * 100)}%`),
       ),
       React.createElement('input', {
-        className: 'dproof-scrubber', type: 'range', min: 0, max: 100, value: Math.round(progress * 100),
+        className: 'dcompare-scrubber', type: 'range', min: 0, max: 100, value: Math.round(progress * 100),
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => setProgress(Number(event.target.value) / 100),
         'aria-label': 'Timeline progress',
       }),
-      React.createElement('div', { className: 'dproof-timelines' },
+      React.createElement('div', { className: 'dcompare-timelines' },
         React.createElement(Timeline, { label: 'Baseline', evidence: safe.evidence?.baseline ?? evidence.baseline, progress }),
         React.createElement(Timeline, { label: 'Candidate', evidence: safe.evidence?.candidate ?? evidence.candidate, progress }),
       ),
     ),
-    React.createElement('section', { className: 'dproof-section' },
-      React.createElement('div', { className: 'dproof-section-head' },
+    React.createElement('section', { className: 'dcompare-section' },
+      React.createElement('div', { className: 'dcompare-section-head' },
         React.createElement('strong', null, 'Recorded file evidence'),
         React.createElement('span', null, `${safe.exportManifest.fileDiffs} diff(s)`),
       ),
-      React.createElement('div', { className: 'dproof-diffs' },
+      React.createElement('div', { className: 'dcompare-diffs' },
         React.createElement(DiffList, { label: 'Baseline', evidence: safe.evidence?.baseline ?? evidence.baseline }),
         React.createElement(DiffList, { label: 'Candidate', evidence: safe.evidence?.candidate ?? evidence.candidate }),
       ),
-      React.createElement('div', { className: 'dproof-manifest' },
+      React.createElement('div', { className: 'dcompare-manifest' },
         `Preview redaction applied · ${safe.exportManifest.redaction.matches} secret-like value(s) hidden · source: canonical session log`,
       ),
     ),
   )
 }
 
-function ReportActions({ report }: { report: ReturnType<typeof createProofReport> }): React.ReactElement {
-  return React.createElement('div', { className: 'dproof-export' },
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'html') }, 'Download report · HTML'),
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'json') }, 'Evidence · JSON'),
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => downloadReport(report, 'svg') }, 'SVG card'),
-      React.createElement('button', { type: 'button', className: 'dproof-button', onClick: () => void downloadPng(report) }, 'PNG card'),
+function ReportActions({ report }: { report: ReturnType<typeof createComparisonReport> }): React.ReactElement {
+  return React.createElement('div', { className: 'dcompare-export' },
+      React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'html') }, 'Download report · HTML'),
+      React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'json') }, 'Evidence · JSON'),
+      React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => downloadReport(report, 'svg') }, 'SVG card'),
+      React.createElement('button', { type: 'button', className: 'dcompare-button', onClick: () => void downloadPng(report) }, 'PNG card'),
   )
 }
 
 function ExperimentView({ summary }: { summary: ExperimentSummary }): React.ReactElement {
-  return React.createElement('section', { className: 'dproof-section' },
-    React.createElement('div', { className: 'dproof-section-head' },
+  return React.createElement('section', { className: 'dcompare-section' },
+    React.createElement('div', { className: 'dcompare-section-head' },
       React.createElement('strong', null, `${summary.trials} paired trial(s)`),
       React.createElement('span', null, 'Candidate − baseline'),
     ),
-    React.createElement('div', { className: 'dproof-outcomes' },
+    React.createElement('div', { className: 'dcompare-outcomes' },
       React.createElement('span', null, `Baseline checks: ${summary.outcomes.baseline.pass} pass · ${summary.outcomes.baseline.fail} fail · ${summary.outcomes.baseline.unknown} unknown`),
       React.createElement('span', null, `Candidate checks: ${summary.outcomes.candidate.pass} pass · ${summary.outcomes.candidate.fail} fail · ${summary.outcomes.candidate.unknown} unknown`),
     ),
-    React.createElement('div', { className: 'dproof-table' },
+    React.createElement('div', { className: 'dcompare-table' },
       experimentMetric('Active time', summary.durationMs, duration),
       experimentMetric('Tokens', summary.totalTokens, compact),
     ),
-    React.createElement('div', { className: 'dproof-manifest' }, summary.interpretation),
+    React.createElement('div', { className: 'dcompare-manifest' }, summary.interpretation),
   )
 }
 
 function experimentMetric(label: string, metric: PairedDeltaSummary, format: (value: number) => string): React.ReactElement {
   const interval = metric.ci95 ? `${signed(metric.ci95[0], format)} to ${signed(metric.ci95[1], format)}` : 'not estimable'
-  return React.createElement('div', { className: 'dproof-row', key: label },
+  return React.createElement('div', { className: 'dcompare-row', key: label },
     React.createElement('span', null, label),
     React.createElement('span', null, `Δ ${signed(metric.meanDelta, format)}`),
     React.createElement('span', null, `95% ${interval}`),
@@ -403,17 +403,17 @@ function signed(value: number, format: (value: number) => string): string {
 function Timeline({ label, evidence, progress }: { label: string; evidence: RunEvidence; progress: number }): React.ReactElement {
   const end = evidence.timeline.length === 0 ? -1 : Math.round(progress * (evidence.timeline.length - 1))
   const start = Math.max(0, end - 5)
-  return React.createElement('div', { className: 'dproof-timeline' },
+  return React.createElement('div', { className: 'dcompare-timeline' },
     React.createElement('b', null, label),
     ...evidence.timeline.slice(start, end + 1).map((entry, index, visible) => React.createElement('div', {
-      key: entry.seq, className: `dproof-event dproof-event-${entry.status}${index === visible.length - 1 ? ' is-current' : ''}`,
+      key: entry.seq, className: `dcompare-event dcompare-event-${entry.status}${index === visible.length - 1 ? ' is-current' : ''}`,
     }, React.createElement('span', null, duration(entry.elapsedMs)), React.createElement('strong', null, entry.label))),
-    end < 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No timeline events') : null,
+    end < 0 ? React.createElement('span', { className: 'dcompare-muted' }, 'No timeline events') : null,
   )
 }
 
 function DiffList({ label, evidence }: { label: string; evidence: RunEvidence }): React.ReactElement {
-  return React.createElement('div', { className: 'dproof-diff-list' },
+  return React.createElement('div', { className: 'dcompare-diff-list' },
     React.createElement('b', null, label),
     ...evidence.fileDiffs.slice(0, 4).map((diff, index) => React.createElement('details', { key: `${diff.seq}-${diff.path}-${index}` },
       React.createElement('summary', null, diff.path),
@@ -423,29 +423,29 @@ function DiffList({ label, evidence }: { label: string; evidence: RunEvidence })
       React.createElement('summary', null, `Git snapshot · ${evidence.git.changedFiles} changed file(s)`),
       React.createElement('pre', null, `${evidence.git.status || '(clean)'}\n\n${evidence.git.diff || '(no tracked diff)'}`),
     ) : null,
-    evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dproof-muted' }, 'No tool-recorded edit metadata. Check the Git snapshot for final changes.') : null,
+    evidence.fileDiffs.length === 0 ? React.createElement('span', { className: 'dcompare-muted' }, 'No tool-recorded edit metadata. Check the Git snapshot for final changes.') : null,
   )
 }
 
-function CheckView({ label, check }: { label: string; check: ProofComparison['baseline']['check'] }): React.ReactElement {
-  if (!check) return React.createElement('div', { className: 'dproof-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dproof-muted' }, 'Not configured'))
-  return React.createElement('div', { className: 'dproof-diff-list' },
+function CheckView({ label, check }: { label: string; check: RunComparison['baseline']['check'] }): React.ReactElement {
+  if (!check) return React.createElement('div', { className: 'dcompare-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dcompare-muted' }, 'Not configured'))
+  return React.createElement('div', { className: 'dcompare-diff-list' },
     React.createElement('b', null, `${label} · ${check.status}`),
     React.createElement('code', null, check.command),
     check.output ? React.createElement('pre', null, check.output) : null,
   )
 }
 
-function FailureView({ label, failure }: { label: string; failure: ProofComparison['baseline']['failure'] }): React.ReactElement {
-  if (!failure) return React.createElement('div', { className: 'dproof-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dproof-muted' }, 'No Agent failure recorded'))
-  return React.createElement('div', { className: 'dproof-diff-list dproof-failure' },
+function FailureView({ label, failure }: { label: string; failure: RunComparison['baseline']['failure'] }): React.ReactElement {
+  if (!failure) return React.createElement('div', { className: 'dcompare-diff-list' }, React.createElement('b', null, label), React.createElement('span', { className: 'dcompare-muted' }, 'No Agent failure recorded'))
+  return React.createElement('div', { className: 'dcompare-diff-list dcompare-failure' },
     React.createElement('b', null, `${label} · ${failure.phase} failure${failure.code ? ` · ${failure.code}` : ''}`),
     React.createElement('pre', null, failure.message),
   )
 }
 
-function downloadReport(report: ReturnType<typeof createProofReport>, format: 'json' | 'html' | 'svg'): void {
-  const content = format === 'json' ? serializeProofReport(report) : format === 'html' ? renderProofHtml(report) : renderProofSvg(report)
+function downloadReport(report: ReturnType<typeof createComparisonReport>, format: 'json' | 'html' | 'svg'): void {
+  const content = format === 'json' ? serializeComparisonReport(report) : format === 'html' ? renderComparisonHtml(report) : renderComparisonSvg(report)
   const mime = format === 'json' ? 'application/json' : format === 'html' ? 'text/html' : 'image/svg+xml'
   const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
@@ -456,8 +456,8 @@ function downloadReport(report: ReturnType<typeof createProofReport>, format: 'j
   URL.revokeObjectURL(url)
 }
 
-async function downloadPng(report: ReturnType<typeof createProofReport>): Promise<void> {
-  const svg = renderProofSvg(report)
+async function downloadPng(report: ReturnType<typeof createComparisonReport>): Promise<void> {
+  const svg = renderComparisonSvg(report)
   const source = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
   try {
     const image = new Image()

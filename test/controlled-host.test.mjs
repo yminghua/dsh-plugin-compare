@@ -13,7 +13,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
   await writeFile(join(source, 'input.txt'), 'original')
   execFileSync('git', ['init', source])
   execFileSync('git', ['-C', source, 'add', 'input.txt'])
-  execFileSync('git', ['-C', source, '-c', 'user.name=DSH Plugin Compare', '-c', 'user.email=proof@example.invalid', 'commit', '-m', 'fixture'])
+  execFileSync('git', ['-C', source, '-c', 'user.name=DSH Plugin Compare', '-c', 'user.email=comparison@example.invalid', 'commit', '-m', 'fixture'])
   let rpcHandler
   const workspaces = []
   const executionOrder = []

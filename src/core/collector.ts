@@ -12,7 +12,7 @@ export interface SessionCounters {
   failedToolCalls: number
 }
 
-export class ProofCollector {
+export class ComparisonCollector {
   readonly #sessions = new Map<string, SessionCounters>()
 
   record(sessionId: string, event: CapturedEvent): void {

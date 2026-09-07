@@ -1,4 +1,4 @@
-import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, validateControlledRunInput, type ProofEvent, type ProofRun, type RunEvidence } from '../core/index.ts'
+import { compareRuns, comparisonEvidence, projectSession, projectSessionEvidence, validateControlledRunInput, type ComparisonEvent, type ComparisonRun, type RunEvidence } from '../core/index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { CompareSessionsResult, ListModelsResult, ListPresetsResult, ListSessionsResult, ReadSessionResult, RpcResult, SessionListItem } from '../shared/protocol.ts'
 import type { HostContext, SessionQueryLike, SessionRecord, TitleSnapshotResult } from './services.ts'
@@ -33,7 +33,7 @@ function sessionItem(record: SessionRecord, titles: Map<string, string>): Sessio
   }
 }
 
-interface ReadProjection { run: ProofRun; evidence: RunEvidence }
+interface ReadProjection { run: ComparisonRun; evidence: RunEvidence }
 
 async function readProjection(query: SessionQueryLike, sessionId: string, signal?: AbortSignal): Promise<ReadProjection> {
   const records = await query.listSessions(signal)
@@ -46,7 +46,7 @@ async function readProjection(query: SessionQueryLike, sessionId: string, signal
     title: titles.get(sessionId) ?? '(untitled)',
     createdAt: record.header.createdAt,
     ...(record.header.cwd !== undefined ? { cwd: record.header.cwd } : {}),
-    events: read.events as readonly ProofEvent[],
+    events: read.events as readonly ComparisonEvent[],
   }
   return { run: projectSession(input), evidence: projectSessionEvidence(sessionId, input.events) }
 }
@@ -62,7 +62,7 @@ function errorResult(error: unknown): RpcResult<never> {
   return { ok: false, error: { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} } }
 }
 
-export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
+export function registerComparisonApi(ctx: HostContext, config: ApiConfig): void {
   const progress = new ProgressStore()
   ctx.effect(() => ctx.connection.rpc.handle('/dsh-plugin-compare', async (endpoint, payload, signal) => {
     try {

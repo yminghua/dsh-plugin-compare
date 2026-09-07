@@ -1,7 +1,7 @@
 import type {
   NumericDelta,
-  ProofComparison,
-  ProofRun,
+  RunComparison,
+  ComparisonRun,
   TokenUsage,
 } from './types.ts'
 
@@ -19,14 +19,14 @@ export function numericDelta(baseline: number, candidate: number): NumericDelta 
   }
 }
 
-function chooseWinner(baseline: ProofRun, candidate: ProofRun): ProofComparison['winner'] {
+function chooseWinner(baseline: ComparisonRun, candidate: ComparisonRun): RunComparison['winner'] {
   if (baseline.metrics.outcome === 'pass' && candidate.metrics.outcome === 'fail') return 'baseline'
   if (candidate.metrics.outcome === 'pass' && baseline.metrics.outcome === 'fail') return 'candidate'
   return 'undetermined'
 }
 
-export function compareRuns(baseline: ProofRun, candidate: ProofRun): ProofComparison {
-  const comparison: ProofComparison = {
+export function compareRuns(baseline: ComparisonRun, candidate: ComparisonRun): RunComparison {
+  const comparison: RunComparison = {
     baseline,
     candidate,
     winner: chooseWinner(baseline, candidate),

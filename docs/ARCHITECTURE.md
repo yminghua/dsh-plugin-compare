@@ -27,7 +27,7 @@ The initial product has one release unit and one consumer: a DSH Web profile. Sp
 - File evidence comes only from persisted `tool/result.meta.diffs`; the browser never reads workspace files.
 - Export manifests state the source, included evidence counts, and redaction matches.
 - Unknown metrics stay unknown instead of being inferred from missing data.
-- A single run is evidence, not statistical proof. Repeated trials will be modeled explicitly.
+- A single run is evidence, not a statistically reliable conclusion. Repeated trials are modeled explicitly.
 
 ## Controlled-run boundary
 

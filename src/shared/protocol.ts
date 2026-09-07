@@ -1,4 +1,4 @@
-import type { ComparisonEvidence, ExperimentSummary, ProofComparison, ProofRun } from '../core/index.ts'
+import type { ComparisonEvidence, ExperimentSummary, RunComparison, ComparisonRun } from '../core/index.ts'
 
 export interface SessionListItem {
   sessionId: string
@@ -15,11 +15,11 @@ export interface ListSessionsResult {
 }
 
 export interface ReadSessionResult {
-  run: ProofRun
+  run: ComparisonRun
 }
 
 export interface CompareSessionsResult {
-  comparison: ProofComparison
+  comparison: RunComparison
   evidence: ComparisonEvidence
 }
 
@@ -66,7 +66,7 @@ export interface ControlledRunDesign {
 
 export interface ControlledRunResult extends CompareSessionsResult {
   design: ControlledRunDesign
-  trialComparisons: ProofComparison[]
+  trialComparisons: RunComparison[]
   summary: ExperimentSummary
 }
 

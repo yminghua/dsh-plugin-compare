@@ -17,7 +17,7 @@ import {
   validateControlledRunInput,
   type ExplicitCheckResult,
   type GitSnapshotEvidence,
-  type ProofComparison,
+  type RunComparison,
   type RunEvidence,
   type RunFailure,
 } from '../core/index.ts'
@@ -34,7 +34,7 @@ export interface ControlledRunConfig {
   maxTrials: number
 }
 
-interface VariantResult { run: ProofComparison['baseline']; evidence: RunEvidence }
+interface VariantResult { run: RunComparison['baseline']; evidence: RunEvidence }
 
 export async function listUsablePresets(ctx: HostContext): Promise<PresetListItem[]> {
   return Promise.all((await ctx.agentPresets.list()).map(async (preset) => ({
@@ -80,7 +80,7 @@ export async function runControlledComparison(
 
   const root = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-run-'))
   try {
-    const comparisons: ProofComparison[] = []
+    const comparisons: RunComparison[] = []
     let firstEvidence: ReturnType<typeof comparisonEvidence> | undefined
     for (let index = 0; index < input.trials; index += 1) {
       const trialRoot = join(root, `trial-${index + 1}`)

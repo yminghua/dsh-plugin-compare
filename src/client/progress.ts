@@ -52,19 +52,19 @@ export function RunProgressView({ progress, startedAt, receivedAt, issue }: {
     return () => clearInterval(timer)
   }, [])
   const stale = now - receivedAt > 10_000 && progress?.phase !== 'completed' && progress?.phase !== 'failed'
-  return React.createElement('section', { className: 'dproof-progress', 'aria-label': 'Controlled run progress' },
-    React.createElement('div', { className: 'dproof-section-head' },
+  return React.createElement('section', { className: 'dcompare-progress', 'aria-label': 'Controlled run progress' },
+    React.createElement('div', { className: 'dcompare-section-head' },
       React.createElement('strong', { role: 'status' }, progress ? labels[progress.phase] : 'Submitting experiment…'),
       React.createElement('span', null, `Elapsed ${elapsedLabel(now - (progress?.startedAt ?? startedAt))}`),
     ),
     progress ? React.createElement(React.Fragment, null,
       React.createElement('div', null, `Pair ${progress.trial || 1}/${progress.trials}${progress.variant ? ` · ${progress.variant === 'baseline' ? 'A · Baseline' : 'B · Candidate'} · ${progress.presetName}` : ''}`),
       React.createElement('progress', { max: progress.totalVariants, value: progress.completedVariants, 'aria-label': 'Finished Agent runs (not elapsed time)' }),
-      React.createElement('div', { className: 'dproof-muted' }, `${progress.completedVariants}/${progress.totalVariants} Agent runs finished · Current stage ${elapsedLabel(now - progress.phaseStartedAt)}`),
-      React.createElement('div', { className: 'dproof-muted' }, remainingLabel(progress, now)),
-      progress.phase === 'running' ? React.createElement('div', { className: 'dproof-muted' }, `${progress.events} recorded events · ${progress.lastActivityAt ? `Latest activity ${elapsedLabel(now - progress.lastActivityAt)} ago` : 'Waiting for first recorded activity'} · Agent timeout ${elapsedLabel(progress.runTimeoutMs)}`) : null,
-      progress.phase === 'checking' ? React.createElement('div', { className: 'dproof-muted' }, `Success-check timeout ${elapsedLabel(progress.checkTimeoutMs)}`) : null,
-    ) : React.createElement('div', { className: 'dproof-muted' }, 'Waiting for server progress. Model response times vary.'),
-    issue || stale ? React.createElement('div', { className: 'dproof-warning', role: 'status' }, issue || 'Progress updates are delayed. The last known state is shown; this does not mean the run has stopped.') : null,
+      React.createElement('div', { className: 'dcompare-muted' }, `${progress.completedVariants}/${progress.totalVariants} Agent runs finished · Current stage ${elapsedLabel(now - progress.phaseStartedAt)}`),
+      React.createElement('div', { className: 'dcompare-muted' }, remainingLabel(progress, now)),
+      progress.phase === 'running' ? React.createElement('div', { className: 'dcompare-muted' }, `${progress.events} recorded events · ${progress.lastActivityAt ? `Latest activity ${elapsedLabel(now - progress.lastActivityAt)} ago` : 'Waiting for first recorded activity'} · Agent timeout ${elapsedLabel(progress.runTimeoutMs)}`) : null,
+      progress.phase === 'checking' ? React.createElement('div', { className: 'dcompare-muted' }, `Success-check timeout ${elapsedLabel(progress.checkTimeoutMs)}`) : null,
+    ) : React.createElement('div', { className: 'dcompare-muted' }, 'Waiting for server progress. Model response times vary.'),
+    issue || stale ? React.createElement('div', { className: 'dcompare-warning', role: 'status' }, issue || 'Progress updates are delayed. The last known state is shown; this does not mean the run has stopped.') : null,
   )
 }

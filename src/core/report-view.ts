@@ -1,6 +1,6 @@
-import type { ProofComparison, ProofRun } from './types.ts'
+import type { RunComparison, ComparisonRun } from './types.ts'
 
-export function runIdentity(run: ProofRun) {
+export function runIdentity(run: ComparisonRun) {
   return {
     name: run.plugin ?? run.presetName ?? run.label,
     version: run.pluginVersion ?? '',
@@ -13,7 +13,7 @@ export function runIdentity(run: ProofRun) {
   }
 }
 
-export function reportHeadline(comparison: ProofComparison): string {
+export function reportHeadline(comparison: RunComparison): string {
   const runs = [comparison.baseline, comparison.candidate]
   if (runs.some((run) => run.failure?.phase === 'startup')) return 'Invalid comparison · Agent startup failed'
   if (runs.every((run) => run.check?.status === 'pass')) return 'Both variants passed the success check'
@@ -25,7 +25,7 @@ export function percentChange(value: number | null): string {
   return value === null ? 'No baseline for %' : `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
 }
 
-export function reportMetricCards(comparison: ProofComparison) {
+export function reportMetricCards(comparison: RunComparison) {
   return [
     { label: 'Agent time', before: `${(comparison.deltas.durationMs.baseline / 1000).toFixed(1)} s`, after: `${(comparison.deltas.durationMs.candidate / 1000).toFixed(1)} s`, change: percentChange(comparison.deltas.durationMs.percent) },
     { label: 'Tool calls', before: String(comparison.deltas.toolCalls.baseline), after: String(comparison.deltas.toolCalls.candidate), change: percentChange(comparison.deltas.toolCalls.percent) },

@@ -1,5 +1,5 @@
 import type { ComparisonEvidence, FileDiffEvidence, RunEvidence, TimelineEntry, TimelineLane, TimelineStatus } from './types.ts'
-import type { ProofEvent } from './project.ts'
+import type { ComparisonEvent } from './project.ts'
 
 interface FileDiffLike { path: string; oldText: string | null; newText: string }
 
@@ -14,7 +14,7 @@ function fileDiff(value: unknown): FileDiffLike | undefined {
   return { path: candidate.path, oldText: candidate.oldText, newText: candidate.newText }
 }
 
-export function fileDiffsFromEvent(event: ProofEvent): FileDiffEvidence[] {
+export function fileDiffsFromEvent(event: ComparisonEvent): FileDiffEvidence[] {
   if (event.type !== 'tool/result') return []
   const diffs = object(object(event.data)?.meta)?.diffs
   if (!Array.isArray(diffs)) return []
@@ -24,7 +24,7 @@ export function fileDiffsFromEvent(event: ProofEvent): FileDiffEvidence[] {
   })
 }
 
-function presentation(event: ProofEvent): { lane: TimelineLane; status: TimelineStatus; label: string } {
+function presentation(event: ComparisonEvent): { lane: TimelineLane; status: TimelineStatus; label: string } {
   const data = object(event.data)
   switch (event.type) {
     case 'turn/start': return { lane: 'turn', status: 'start', label: `Turn ${number(data?.turn) ?? ''} started`.replace('  ', ' ') }
@@ -51,7 +51,7 @@ function number(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-export function projectSessionEvidence(sessionId: string, events: readonly ProofEvent[]): RunEvidence {
+export function projectSessionEvidence(sessionId: string, events: readonly ComparisonEvent[]): RunEvidence {
   const origin = events.reduce<number | undefined>((minimum, event) => Number.isFinite(event.time)
     ? minimum === undefined ? event.time : Math.min(minimum, event.time)
     : minimum, undefined)

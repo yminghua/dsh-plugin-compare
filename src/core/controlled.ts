@@ -1,4 +1,4 @@
-import type { ExplicitCheckResult, GitSnapshotEvidence, ProofRun } from './types.ts'
+import type { ExplicitCheckResult, GitSnapshotEvidence, ComparisonRun } from './types.ts'
 
 export interface ControlledVariantInput {
   presetId: string
@@ -15,7 +15,7 @@ export interface ControlledRunInput {
   trials: number
 }
 
-export function applyControlledFacts(run: ProofRun, check: ExplicitCheckResult | undefined, git: GitSnapshotEvidence): ProofRun {
+export function applyControlledFacts(run: ComparisonRun, check: ExplicitCheckResult | undefined, git: GitSnapshotEvidence): ComparisonRun {
   return {
     ...run,
     metrics: {

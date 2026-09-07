@@ -8,7 +8,7 @@ export async function rpc<T>(ctx: Context, endpoint: string, payload: unknown): 
   return response.value as T
 }
 
-export async function loadProofOptions(ctx: Context) {
+export async function loadComparisonOptions(ctx: Context) {
   const [sessions, presets, models] = await Promise.allSettled([
     rpc<ListSessionsResult>(ctx, 'list', { limit: 100 }),
     rpc<ListPresetsResult>(ctx, 'presets', {}),

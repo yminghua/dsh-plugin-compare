@@ -22,7 +22,7 @@ export interface RunMetrics {
   costUsd?: number
 }
 
-export interface ProofRun {
+export interface ComparisonRun {
   id: string
   label: string
   sessionId?: string
@@ -101,9 +101,9 @@ export interface NumericDelta {
   percent: number | null
 }
 
-export interface ProofComparison {
-  baseline: ProofRun
-  candidate: ProofRun
+export interface RunComparison {
+  baseline: ComparisonRun
+  candidate: ComparisonRun
   winner: 'baseline' | 'candidate' | 'tie' | 'undetermined'
   deltas: {
     durationMs: NumericDelta

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareRuns, ProofCollector, redactSecrets } from '../lib/core/index.js'
+import { compareRuns, ComparisonCollector, redactSecrets } from '../lib/core/index.js'
 
 function run(id, outcome, durationMs, input, output) {
   return {
@@ -34,7 +34,7 @@ test('one noisy passing pair does not produce a winner', () => {
 })
 
 test('collector folds structural session events', () => {
-  const collector = new ProofCollector()
+  const collector = new ComparisonCollector()
   collector.record('s1', { type: 'turn/start' })
   collector.record('s1', { type: 'step/start' })
   collector.record('s1', { type: 'tool/call' })

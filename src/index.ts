@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { ProofCollector, type CapturedEvent } from './core/index.ts'
-import { registerProofApi } from './host/api.ts'
+import { ComparisonCollector, type CapturedEvent } from './core/index.ts'
+import { registerComparisonApi } from './host/api.ts'
 import './host/services.ts'
 import './shared/cordis.ts'
 
@@ -16,11 +16,11 @@ export interface Config {
 }
 
 export function apply(ctx: Context, _config: Config): void {
-  const collector = new ProofCollector()
+  const collector = new ComparisonCollector()
   ctx.on('session/event', (session: Session, event: SessionEvent) => {
     collector.record(String(session.id), event as CapturedEvent)
   })
-  registerProofApi(ctx, {
+  registerComparisonApi(ctx, {
     maxRuns: positiveInteger(_config.maxRuns, 100),
     runTimeoutMs: positiveInteger(_config.runTimeoutMs, 15 * 60_000),
     checkTimeoutMs: positiveInteger(_config.checkTimeoutMs, 5 * 60_000),

@@ -1,5 +1,5 @@
 import { totalTokens } from './compare.ts'
-import type { ProofComparison } from './types.ts'
+import type { RunComparison } from './types.ts'
 
 export interface DistributionSummary {
   mean: number
@@ -32,13 +32,13 @@ export interface TrialObservation {
   trial: number
   baselineSessionId: string
   candidateSessionId: string
-  baselineOutcome: ProofComparison['baseline']['metrics']['outcome']
-  candidateOutcome: ProofComparison['candidate']['metrics']['outcome']
+  baselineOutcome: RunComparison['baseline']['metrics']['outcome']
+  candidateOutcome: RunComparison['candidate']['metrics']['outcome']
   durationDeltaMs: number
   totalTokensDelta: number
 }
 
-export function summarizeExperiment(comparisons: readonly ProofComparison[]): ExperimentSummary {
+export function summarizeExperiment(comparisons: readonly RunComparison[]): ExperimentSummary {
   if (comparisons.length === 0) throw new Error('At least one trial is required')
   return {
     trials: comparisons.length,
@@ -69,7 +69,7 @@ export function summarizeExperiment(comparisons: readonly ProofComparison[]): Ex
   }
 }
 
-function outcomeCounts(values: readonly ProofComparison['baseline']['metrics']['outcome'][]): { pass: number; fail: number; unknown: number } {
+function outcomeCounts(values: readonly RunComparison['baseline']['metrics']['outcome'][]): { pass: number; fail: number; unknown: number } {
   return {
     pass: values.filter((value) => value === 'pass').length,
     fail: values.filter((value) => value === 'fail').length,

@@ -1,6 +1,6 @@
 // Entirely synthetic, non-private visual QA data. Never reads user reports.
 import { mkdir, writeFile } from 'node:fs/promises'
-import { compareRuns, createProofReport, serializeProofReport, summarizeExperiment } from '../lib/core/index.js'
+import { compareRuns, createComparisonReport, serializeComparisonReport, summarizeExperiment } from '../lib/core/index.js'
 
 const variant = (id, plugin, time, tokens, calls) => ({
   id, label: `${id} demo preset`, presetId: id, presetName: id === 'baseline' ? 'Standard demo' : '示例质量模式',
@@ -13,6 +13,6 @@ const variant = (id, plugin, time, tokens, calls) => ({
 })
 const comparison = compareRuns(variant('baseline', undefined, 100_000, 1000, 10), variant('candidate', 'example-quality-plugin', 80_000, 700, 8))
 const evidence = { baseline: { sessionId: 'baseline', timeline: [], fileDiffs: [] }, candidate: { sessionId: 'candidate', timeline: [], fileDiffs: [] } }
-const report = createProofReport(comparison, evidence, '2026-01-01T00:00:00Z', summarizeExperiment([comparison]))
+const report = createComparisonReport(comparison, evidence, '2026-01-01T00:00:00Z', summarizeExperiment([comparison]))
 await mkdir('reports/synthetic', { recursive: true })
-await writeFile('reports/synthetic/input.json', serializeProofReport(report), { flag: 'wx' })
+await writeFile('reports/synthetic/input.json', serializeComparisonReport(report), { flag: 'wx' })

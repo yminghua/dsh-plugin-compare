@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { loadProofOptions } from '../src/client/options.ts'
+import { loadComparisonOptions } from '../src/client/options.ts'
 
 for (const failed of ['list', 'presets', 'models']) {
   test(`options retain successful lists when ${failed} fails`, async () => {
@@ -10,7 +10,7 @@ for (const failed of ['list', 'presets', 'models']) {
       if (method === failed) return { ok: false, error: { code: 'internal', message: 'original failure', details: {} } }
       return { ok: true, value: values[method] }
     } } } }
-    const result = await loadProofOptions(ctx)
+    const result = await loadComparisonOptions(ctx)
     for (const [method, key] of [['list', 'sessions'], ['presets', 'presets'], ['models', 'models']]) {
       assert.equal(result[key].status, method === failed ? 'rejected' : 'fulfilled')
       if (method !== failed) assert.deepEqual(result[key].value, values[method])
@@ -20,7 +20,7 @@ for (const failed of ['list', 'presets', 'models']) {
 }
 
 test('options label transport exceptions without rejecting other lists', async () => {
-  const result = await loadProofOptions({ connection: { rpc: { async call(_channel, method) {
+  const result = await loadComparisonOptions({ connection: { rpc: { async call(_channel, method) {
     if (method === 'models') throw new Error('transport offline')
     return { ok: true, value: {} }
   } } } })

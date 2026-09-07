@@ -1,7 +1,7 @@
-import type { ExecutionStatus, ProofRun, RunFailure, TokenUsage } from './types.ts'
+import type { ExecutionStatus, ComparisonRun, RunFailure, TokenUsage } from './types.ts'
 import { fileDiffsFromEvent } from './evidence.ts'
 
-export interface ProofEvent {
+export interface ComparisonEvent {
   seq: number
   type: string
   time: number
@@ -13,7 +13,7 @@ export interface SessionProjectionInput {
   title: string
   createdAt: number
   cwd?: string
-  events: readonly ProofEvent[]
+  events: readonly ComparisonEvent[]
 }
 
 interface UsageLike {
@@ -52,7 +52,7 @@ function failureFromReason(reason: unknown, startup: boolean): RunFailure | unde
   return { phase: startup ? 'startup' : 'execution', message, ...(code ? { code } : {}) }
 }
 
-export function projectSession(input: SessionProjectionInput): ProofRun {
+export function projectSession(input: SessionProjectionInput): ComparisonRun {
   let turns = 0
   let steps = 0
   let toolCalls = 0
