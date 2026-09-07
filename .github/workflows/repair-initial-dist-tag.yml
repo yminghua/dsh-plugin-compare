@@ -22,7 +22,15 @@ jobs:
         run: |
           latest=$(npm view dsh-plugin-compare dist-tags.latest --json | tr -d '"')
           if [ "$latest" = "0.1.0-alpha.1" ]; then
-            npm dist-tag rm dsh-plugin-compare latest
+            set +e
+            output=$(npm dist-tag rm dsh-plugin-compare latest 2>&1)
+            status=$?
+            set -e
+            if [ "$status" -ne 0 ]; then
+              message=$(printf '%s' "$output" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+              echo "::error title=npm dist-tag rm failed::$message"
+              exit "$status"
+            fi
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
