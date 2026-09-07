@@ -1,7 +1,13 @@
 # Public example reports
 
-This directory is reserved for reviewed outputs of the checkout walkthrough.
-No model-backed result is bundled yet; the tutorial does not promise a particular winner or performance delta.
+This directory contains reviewed outputs from the model-backed checkout walkthrough run captured on 2026-09-07:
+
+- [`checkout-demo.html`](checkout-demo.html) — self-contained readable report;
+- [`checkout-demo.json`](checkout-demo.json) — detailed evidence;
+- [`checkout-demo.png`](checkout-demo.png) — shareable card;
+- [`checkout-demo.svg`](checkout-demo.svg) — vector card.
+
+Both variants passed the 5-test success check. The report contains one paired observation, keeps `winner: undetermined`, and does not establish a stable performance or cost ranking.
 
 Keep original exports in `example/captures/<run>/` first (ignored by Git). Save:
 
@@ -14,5 +20,6 @@ Before publishing copies here, review code, command output, credentials, account
 Automatic secret redaction is incomplete. A report with `matches: 0` is not a privacy clearance.
 If publishing modified copies, state what was removed or annotated and do not change measurements.
 
-Suggested publication filenames: `checkout-demo.html`, `checkout-demo.json`, `checkout-demo.png`, `run-notes.md`.
-Keep the tested plugin identity and its provenance; do not retroactively claim inferred labels were captured during execution.
+For this publication copy, local macOS workspace and temporary-run prefixes were replaced with `demo-workspace` and `example-run`. Metrics, session evidence, test output, diffs, plugin identity, and provenance were not changed. The screenshots received separate visual path masking by the author.
+
+Future runs should keep the tested plugin identity and its provenance; do not retroactively claim inferred labels were captured during execution.

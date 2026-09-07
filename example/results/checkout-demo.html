@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DSH Proof · 标准模式 vs dsh-expert-mode</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f5f7;color:#172b3a;font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:1080px;margin:36px auto 64px;padding:0 24px}.masthead{display:flex;justify-content:space-between;gap:20px;margin-bottom:22px;font-size:12px;color:#596e7e}.masthead b{letter-spacing:.14em;color:#173b43}.card{border:1px solid #dce4e9;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 40px #203d4810}.head{padding:34px}.eyebrow{font-size:10px;letter-spacing:.12em;font-weight:700;color:#536e7d}h1{font-size:30px;line-height:1.3;letter-spacing:-.025em;margin:12px 0 26px;overflow-wrap:anywhere}h1>span{font-size:18px;font-weight:400;color:#768895}h2{font-size:17px;line-height:1.4;margin:0 0 14px}h2 small{font-size:11px;font-weight:400;color:#667b87;margin-left:12px}.identities{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.identity{padding:20px;border:1px solid #dce4e9;border-top:3px solid #8095a3;border-radius:12px;min-width:0;overflow-wrap:anywhere}.identity:nth-child(2){border-top-color:#287e78;background:#f8fcfb}.identity h2{font-size:22px;letter-spacing:-.02em;margin:9px 0}.identity p{font-size:12px;color:#506471;margin:8px 0}.identity small{font-size:10px;color:#617785}.version{display:inline-block;border:1px solid #ccdadf;border-radius:5px;padding:1px 6px;font:11px ui-monospace,monospace}.badge{font-size:11px;font-weight:600;padding-top:12px;margin-top:12px;border-top:1px solid #e1e9ed}.verdict{display:grid;gap:4px;padding:16px 18px;margin:22px 0;background:#edf5f4;border-left:3px solid #287e78;border-radius:8px}.verdict strong{font-size:16px}.verdict span{font-size:12px;color:#496663}.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.kpis article{padding:17px;border:1px solid #dde5e9;border-radius:10px;display:grid;gap:6px}.kpis span{color:#5d7380;font-size:11px}.kpis strong{font-size:29px;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.kpis small{color:#637985;font-size:11px}.kpis b{font-size:11px;font-weight:600;color:#285f64}.subtle{font-size:11px;color:#607481;margin:14px 0 0}.evidence{padding:26px 34px;border-top:1px solid #e1e7eb}.evidence>.subtle{margin:-4px 0 16px}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:11px 14px;border-bottom:1px solid #e5ebee}th:first-child{text-align:left;font-weight:500;color:#506875}thead th{background:#f4f7f8;font-size:11px;color:#5c7280}.note{font-size:12px;color:#647887;padding:12px 15px;border:1px solid #e0e7eb;border-radius:8px}.diff{min-width:0;border:1px solid #e0e7eb;border-radius:9px;padding:14px;margin:0 0 12px}.diff h3{font-size:12px;color:#375c6a;margin:0 0 10px}.diff strong{display:block;font-size:11px;margin:12px 0 8px;overflow-wrap:anywhere}summary{cursor:pointer;color:#375c6a;font-size:12px;font-weight:600;overflow-wrap:anywhere}pre{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7f8;padding:12px;border-radius:6px;font:11px/1.55 ui-monospace,monospace}code{font:11px ui-monospace,monospace;overflow-wrap:anywhere}footer{border-top:1px solid #e0e7eb;padding:20px 34px;background:#f8fafb;color:#617582;font-size:11px}footer p{margin:0 0 8px}
+@media(max-width:650px){.wrap{padding:0 12px;margin:18px auto}.head,.evidence{padding:20px}h1{font-size:24px}.identities{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}.kpis article{grid-template-columns:1fr auto}.kpis strong{font-size:25px}.masthead span{display:none}th,td{padding:9px 7px}footer{padding:20px}}
+@media print{body{background:white}.wrap{max-width:none;margin:0;padding:0}.card{box-shadow:none;border:0}.identity,.kpis article{break-inside:avoid}details>*{display:block}pre{max-height:none}.evidence{break-inside:auto}summary{list-style:none}}
+</style></head>
+<body><main class="wrap"><header class="masthead"><b>DSH / PROOF</b><span>Plugin comparison report</span></header><section class="card"><header class="head"><div class="eyebrow">MEASURED EVIDENCE / NOT A LEADERBOARD</div><h1>标准模式 <span>vs</span> dsh-expert-mode</h1><div class="identities"><article class="identity"><span class="eyebrow">A · Baseline</span><h2>标准模式</h2><p>Preset: 标准模式 · <code>standard</code></p><p>deepseek-official / deepseek-v4-flash</p><small>Plugin identity not recorded · showing preset/session</small><div class="badge">Execution: completed · Check: pass</div></article><article class="identity"><span class="eyebrow">B · Candidate</span><h2>dsh-expert-mode</h2><b class="version">v0.9.2</b><p>Preset: 专家模式 v0.9.2 · <code>expert-mode</code></p><p>deepseek-official / deepseek-v4-flash</p><small>Preset registration · declared metadata</small><div class="badge">Execution: completed · Check: pass</div></article></div><div class="verdict"><strong>Both variants passed the success check</strong><span>1 paired trial(s) · Single observation, not a stable plugin ranking.</span></div><div class="kpis"><article><span>Agent time</span><strong>18.1 s</strong><small>A 20.9 s → B 18.1 s</small><b>-13.2% vs A</b></article><article><span>Tool calls</span><strong>7</strong><small>A 8 → B 7</small><b>-12.5% vs A</b></article><article><span>Recorded tokens</span><strong>108,511</strong><small>A 71,133 → B 108,511</small><b>+52.5% vs A</b></article></div><p class="subtle">Token totals include input, output, cache reads and cache writes. Token change is not a cost saving.</p></header><section class="evidence"><h2>Metric details <small>A → B</small></h2><div class="table-scroll"><table><thead><tr><th>Metric</th><th>A · Baseline</th><th>B · Candidate</th></tr></thead><tbody><tr><th>Execution</th><td>completed</td><td>completed</td></tr><tr><th>Task outcome</th><td>pass</td><td>pass</td></tr><tr><th>Recorded tokens · including cache</th><td>71,133</td><td>108,511</td></tr><tr><th>Input tokens</th><td>13,042</td><td>11,215</td></tr><tr><th>Output tokens</th><td>2,923</td><td>2,320</td></tr><tr><th>Cache read tokens</th><td>55,168</td><td>94,976</td></tr><tr><th>Cache write tokens</th><td>0</td><td>0</td></tr><tr><th>Active time</th><td>20.9 s</td><td>18.1 s</td></tr><tr><th>Steps</th><td>5</td><td>5</td></tr><tr><th>Tool calls</th><td>8</td><td>7</td></tr><tr><th>Tool failures</th><td>0</td><td>0</td></tr><tr><th>Retries</th><td>0</td><td>0</td></tr><tr><th>Changed files</th><td>1</td><td>1</td></tr></tbody></table></div></section><section class="evidence"><h2>1 paired trial(s)</h2><p class="note">One pair cannot estimate run-to-run uncertainty.</p><table><tbody><tr><th>Active time</th><td colspan="2">mean paired Δ -2.8 s · 95% CI not estimable</td></tr><tr><th>Tokens</th><td colspan="2">mean paired Δ +37,378 · 95% CI not estimable</td></tr></tbody></table></section><section class="evidence"><h2>Success checks</h2><p class="subtle">These checks verify their covered cases, not every possible requirement.</p><div class="identities"><article class="diff"><h3>A · Baseline · pass</h3><code>node --test</code><p>Exit code: 0 · 122 ms</p><details><summary>Test output</summary><pre>✔ rejects negative subtotal (0.427416ms)
+✔ SAVE10 applies a ten-percent discount (0.064167ms)
+✔ VIP and coupon do not stack; the better discount wins (0.043708ms)
+✔ small subtotals never become negative (0.048792ms)
+✔ rounds the final value to two decimals (0.044917ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48.059417
+</pre></details></article><article class="diff"><h3>B · Candidate · pass</h3><code>node --test</code><p>Exit code: 0 · 90 ms</p><details><summary>Test output</summary><pre>✔ rejects negative subtotal (0.473ms)
+✔ SAVE10 applies a ten-percent discount (0.059459ms)
+✔ VIP and coupon do not stack; the better discount wins (0.043291ms)
+✔ small subtotals never become negative (0.041375ms)
+✔ rounds the final value to two decimals (0.042375ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45.690792
+</pre></details></article></div></section><section class="evidence"><h2>Recorded file evidence</h2><p class="subtle">Git snapshots show final workspace changes. Missing write/edit metadata does not mean no files were changed.</p><div class="identities"><div><details class="diff"><summary>A · Baseline Git snapshot · 1 changed file(s)</summary><strong>Status</strong><pre> M src/checkout.mjs
+</pre><strong>Tracked diff</strong><pre>diff --git a/src/checkout.mjs b/src/checkout.mjs
+index bc18238..9207a4b 100644
+--- a/src/checkout.mjs
++++ b/src/checkout.mjs
+@@ -1,13 +1,19 @@
+ export function checkout(subtotal, options = {}) {
+-  let total = subtotal
++  if (typeof subtotal !== &#39;number&#39; || !Number.isFinite(subtotal) || subtotal &lt; 0) {
++    throw new RangeError(&#39;subtotal must be a finite, non-negative number&#39;)
++  }
+ 
++  // Coupon and VIP discounts do not stack: keep the better (larger) discount.
++  let discount = 0
+   if (options.coupon === &#39;SAVE10&#39;) {
+-    total -= 10
++    discount = 0.1
+   }
+-
+   if (options.vip) {
+-    total *= 0.85
++    discount = Math.max(discount, 0.15)
+   }
+ 
++  // subtotal is non-negative and discount &lt;= 1, so the total is never negative.
++  const total = subtotal * (1 - discount)
++
+   return Math.round(total * 100) / 100
+ }
+</pre></details><details class="diff"><summary>A · Tool-recorded edits · 1 record(s)</summary><strong>example-run/trial-1/baseline/src/checkout.mjs</strong><pre>- export function checkout(subtotal, options = {}) {
+  let total = subtotal
+
+  if (options.coupon === &#39;SAVE10&#39;) {
+    total -= 10
+  }
+
+  if (options.vip) {
+    total *= 0.85
+  }
+
+  return Math.round(total * 100) / 100
+}
++ export function checkout(subtotal, options = {}) {
+  if (typeof subtotal !== &#39;number&#39; || !Number.isFinite(subtotal) || subtotal &lt; 0) {
+    throw new RangeError(&#39;subtotal must be a finite, non-negative number&#39;)
+  }
+
+  // Coupon and VIP discounts do not stack: keep the better (larger) discount.
+  let discount = 0
+  if (options.coupon === &#39;SAVE10&#39;) {
+    discount = 0.1
+  }
+  if (options.vip) {
+    discount = Math.max(discount, 0.15)
+  }
+
+  // subtotal is non-negative and discount &lt;= 1, so the total is never negative.
+  const total = subtotal * (1 - discount)
+
+  return Math.round(total * 100) / 100
+}</pre></details></div><div><details class="diff"><summary>B · Candidate Git snapshot · 1 changed file(s)</summary><strong>Status</strong><pre> M src/checkout.mjs
+</pre><strong>Tracked diff</strong><pre>diff --git a/src/checkout.mjs b/src/checkout.mjs
+index bc18238..aabb561 100644
+--- a/src/checkout.mjs
++++ b/src/checkout.mjs
+@@ -1,13 +1,20 @@
+ export function checkout(subtotal, options = {}) {
+-  let total = subtotal
++  if (typeof subtotal !== &#39;number&#39; || !Number.isFinite(subtotal) || subtotal &lt; 0) {
++    throw new RangeError(&#39;subtotal must be a finite, non-negative number&#39;)
++  }
+ 
++  // Coupon and VIP discounts never stack; keep the better (larger) discount.
++  let discount = 0
+   if (options.coupon === &#39;SAVE10&#39;) {
+-    total -= 10
++    discount = Math.max(discount, 0.1)
+   }
+-
+   if (options.vip) {
+-    total *= 0.85
++    discount = Math.max(discount, 0.15)
+   }
+ 
+-  return Math.round(total * 100) / 100
++  // The result must never be negative.
++  const total = Math.max(0, subtotal * (1 - discount))
++
++  // Round to two decimal places (EPSILON guards float drift).
++  return Math.round((total + Number.EPSILON) * 100) / 100
+ }
+</pre></details><details class="diff"><summary>B · Tool-recorded edits · 1 record(s)</summary><strong>src/checkout.mjs</strong><pre>- export function checkout(subtotal, options = {}) {
+  let total = subtotal
+
+  if (options.coupon === &#39;SAVE10&#39;) {
+    total -= 10
+  }
+
+  if (options.vip) {
+    total *= 0.85
+  }
+
+  return Math.round(total * 100) / 100
+}
++ export function checkout(subtotal, options = {}) {
+  if (typeof subtotal !== &#39;number&#39; || !Number.isFinite(subtotal) || subtotal &lt; 0) {
+    throw new RangeError(&#39;subtotal must be a finite, non-negative number&#39;)
+  }
+
+  // Coupon and VIP discounts never stack; keep the better (larger) discount.
+  let discount = 0
+  if (options.coupon === &#39;SAVE10&#39;) {
+    discount = Math.max(discount, 0.1)
+  }
+  if (options.vip) {
+    discount = Math.max(discount, 0.15)
+  }
+
+  // The result must never be negative.
+  const total = Math.max(0, subtotal * (1 - discount))
+
+  // Round to two decimal places (EPSILON guards float drift).
+  return Math.round((total + Number.EPSILON) * 100) / 100
+}</pre></details></div></div></section><footer><p>Measured execution facts are not a task-success judgment. Repeated controlled trials may be required.</p><span>Generated 2026-09-07T09:28:34.956Z · Schema v2 · 0 secret-like value(s) redacted</span></footer></section></main></body></html>

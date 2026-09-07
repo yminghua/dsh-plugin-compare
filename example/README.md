@@ -4,6 +4,14 @@
 
 这里比较的是两套 Agent Preset 配置，不是保证只改变一个变量的因果实验。目标是学会使用 DSH Proof，不是预设专家模式一定获胜。
 
+## 本仓库收录的实跑结果
+
+2026-09-07 的公开样例使用同一个 `deepseek-v4-flash` 模型，对比标准模式和 `dsh-expert-mode` v0.9.2，运行 1 对 trial。两边都完成任务并通过 5/5 验收测试；Candidate 的 Agent time 为 18.1 s（Baseline 20.9 s），工具调用为 7（Baseline 8），记录 Token 为 108,511（Baseline 71,133，包含缓存活动）。这是一对真实观测，`winner` 仍为 `undetermined`，不能当成稳定排名或费用结论。
+
+![Controlled A/B result overview](screenshots/03-result-overview.png)
+
+可以查看[完整 HTML 报告](results/checkout-demo.html)、[JSON 证据](results/checkout-demo.json)、[PNG 卡片](results/checkout-demo.png)和[SVG 卡片](results/checkout-demo.svg)。发布副本中的本机工作区、临时运行目录已经替换为公开占位路径，指标与证据内容未改动。
+
 ## 目录与注意事项
 
 - `checkout/`：固定的故障起点，**不要在这里修复代码**。
@@ -11,7 +19,8 @@
 - `prompt.txt`：两组使用的同一条任务提示。
 - `.work/`：生成的演示工作区，Git 忽略。
 - `captures/`：本地原始截图、报告和运行记录，Git 忽略。
-- `screenshots/`、`results/`：审核后才放入的公开素材，目前仅有保存说明。
+- `screenshots/`：已审核的操作截图和初始测试文本记录。
+- `results/`：已审核并脱敏的 HTML、JSON、PNG 和 SVG 报告。
 
 样例不需要第三方依赖，只用 Node.js。Agent 调用仍会消耗模型额度。只在这个专用测试项目和可信 Preset 上运行；临时工作区副本不是安全沙箱。测试文件不由框架强制锁定，因此最后还要检查它们有没有被改动。
 
@@ -78,7 +87,7 @@ git status --short
 
 测试覆盖：拒绝负数金额、SAVE10 九折、VIP 与优惠券不叠加、小额结算非负、保留两位小数。当前代码把九折写成减 10，并错误叠加优惠。
 
-**截图 ①：** 保存为本轮素材目录里的 `01-initial-tests.png`，包含测试名称和最终计数。裁掉个人目录、无关终端内容。
+公开样例的完整初始输出见 [initial-tests.md](screenshots/initial-tests.md)。复现时可另存终端截图，须包含测试名称和最终计数，并裁掉个人目录和无关内容。
 
 如果初始已经 5/5 通过，停下来重新运行准备脚本创建新目录，不要继续拿已修好的代码做 demo。
 
@@ -102,7 +111,7 @@ git status --short
 
 我们之前使用 `deepseek-v4-flash`；你不必使用相同模型，但 A/B 必须使用相同路由，不能把不同模型的差异当成插件差异。若插件身份无法自动识别，报告会显示来源未记录，不要将一个猜测的包名当成已验证事实。
 
-**截图 ②：** 点击运行前，保存 `02-controlled-config.png`。重点保留模型、两个 Preset、提示、测试命令和 trials。绝对路径可在公开副本中遮盖。
+**截图 ①：** 点击运行前，保存 `01-controlled-config.png`。重点保留模型、两个 Preset、提示、测试命令和 trials。绝对路径可在公开副本中遮盖。参考[本次实跑配置](screenshots/01-controlled-config.png)。
 
 ## 4. 运行并记录真实进度
 
@@ -110,7 +119,7 @@ git status --short
 
 观察进度卡：复制工作区 → 启动 Agent → Agent 执行 → 成功检查 → 收集证据／清理。它显示当前轮次、A/B、Preset、已用时间、已完成数量及最近活动；首个 Agent 未完成时没有可靠的剩余时间估计。
 
-**截图 ③：** 在 Agent 执行期间保存 `03-running.png`，让用户能看到真实阶段和耗时。可选录制一小段视频；不要为了等截图重复点击运行。
+**截图 ②：** 在 Agent 执行期间保存 `02-running.png`，让用户能看到真实阶段和耗时。可选录制一小段视频；不要为了等截图重复点击运行。参考[本次运行进度](screenshots/02-running.png)。
 
 等待时间取决于模型和 Preset，不承诺固定分钟数。期间不要刷新页面、重启 DSH 或修改源项目；目前没有完整的刷新恢复体验。若提示进度暂不可用，运行可能仍在继续，不要立即启动另一轮。
 
@@ -124,9 +133,9 @@ git status --short
 4. 插件包名、版本、Preset、模型信息是否符合实际配置。
 5. 再比较 Agent 耗时、工具调用、Token 等事实；任意一边更快都可以，不要求固定胜负或百分比。
 
-**截图 ④（主宣传图）：** `04-result-overview.png`，保留两组身份、验收状态、三个关键指标及单轮限制提示。不要只截“下降百分比”而裁掉背景。
+**截图 ③（主宣传图）：** `03-result-overview.png`，保留两组身份、验收状态、三个关键指标及单轮限制提示。不要只截“下降百分比”而裁掉背景。参考[本次结果总览](screenshots/03-result-overview.png)。
 
-**可选截图 ⑤：** `05-evidence.png`，展示测试输出及 Git 差异，证明不是仅仅生成了一份漂亮报告。
+**可选截图 ④：** `04-evidence.png`，展示测试输出及 Git 差异，证明不是仅仅生成了一份漂亮报告。
 
 没有两边都通过时也如实保存报告；查看 Agent failures、测试输出和 Git 证据，不要将失败结果标成成功。`winner: undetermined` 或单轮无法计算置信区间并不表示运行失败；一对样本本来就不能给出稳定排名。
 
@@ -139,6 +148,8 @@ git status --short
 - **PNG card**：适合文章或 README 的摘要图；也可保存 SVG card。
 
 下载到浏览器默认目录后，移入脚本打印的本轮素材目录。保留原始文件名，在 `run-notes.md` 填写文件名、日期、版本、模型、真实结果和异常情况。不要用后来重跑的数据替换第一次截图而不说明。
+
+本仓库已经收录一轮审核后的[报告文件](results/README.md)。它们使用可读的稳定文件名；原始导出时间戳文件名不属于证据语义。
 
 再在**源工作区**执行：
 
@@ -155,6 +166,6 @@ git status --short
 
 **先存 `captures/`，不要直接提交原始导出。** 自动脱敏覆盖不完整，`matches: 0` 不代表没有敏感信息。检查截图、代码差异、命令输出、账号信息、密钥、私人 URL 和本机绝对路径。
 
-审核后的图片副本放入 [screenshots/](screenshots/README.md)，报告副本放入 [results/](results/README.md)。记录哪些内容被遮盖或补充，但不要改变测量值；之后再把真实图片和报告链接加到本教程中。目前这些目录没有预填的“成功结果”。
+审核后的图片副本放入 [screenshots/](screenshots/README.md)，报告副本放入 [results/](results/README.md)。记录哪些内容被遮盖或补充，但不要改变测量值。本仓库中的公开样例已按此流程处理；复现产生的新原始材料仍应先放在 Git 忽略的 `captures/` 中。
 
 最终可以说：“这次运行中，两组通过了现有验收测试，报告记录了它们的执行差异。”不能仅凭这个例子说“该插件稳定更强／省钱”：Token 包括缓存活动，不等于费用；单轮结果和测试覆盖也有局限。

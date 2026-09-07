@@ -6,7 +6,7 @@
 
 ## 跟着 example 跑一次
 
-从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。
+从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。仓库已经收录审核后的真实运行[截图与 HTML 报告](./example/results/checkout-demo.html)。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。
 
 ## 当前状态
 

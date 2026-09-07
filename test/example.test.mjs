@@ -33,3 +33,17 @@ test('checkout example stays intentionally broken and preparation creates indepe
     assert.doesNotMatch(notes, /\{\{SOURCE_|\{\{PROOF_/)
   } finally { await rm(parent, { recursive: true, force: true }) }
 })
+
+test('published checkout example artifacts contain no machine-local paths', async () => {
+  const files = [
+    'example/screenshots/initial-tests.md',
+    'example/results/checkout-demo.html',
+    'example/results/checkout-demo.json',
+    'example/results/checkout-demo.svg',
+  ]
+  for (const file of files) {
+    const contents = await readFile(join(root, file), 'utf8')
+    assert.doesNotMatch(contents, /\/Users\/|\/(?:private\/)?var\/folders\/|Pprojects\/DSH-Plugins|dsh-proof-run-[A-Za-z0-9]+/, file)
+  }
+  JSON.parse(await readFile(join(root, 'example/results/checkout-demo.json'), 'utf8'))
+})
