@@ -2,6 +2,8 @@
 
 This directory contains reviewed outputs from the model-backed checkout walkthrough captured on 2026-09-07:
 
+The full JSON evidence and PNG card are kept in the [GitHub repository](https://github.com/yminghua/dsh-plugin-compare/tree/main/example/results) but excluded from the npm tarball to keep plugin installs small. The compact HTML and SVG examples remain in the package.
+
 - [`checkout-demo.html`](checkout-demo.html) — self-contained readable report;
 - [`checkout-demo.json`](checkout-demo.json) — detailed evidence;
 - [`checkout-demo.png`](checkout-demo.png) — shareable card;

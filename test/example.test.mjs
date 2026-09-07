@@ -47,3 +47,25 @@ test('published checkout example text artifacts contain no machine-local paths',
     if (file.endsWith('.json')) JSON.parse(contents)
   }
 })
+
+test('npm package keeps the runnable example but excludes heavyweight evidence assets', async () => {
+  const cache = await mkdtemp(join(tmpdir(), 'comparison-pack-test-'))
+  try {
+    const output = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, NPM_CONFIG_CACHE: cache },
+    })
+    const [{ files, size, unpackedSize }] = JSON.parse(output)
+    const paths = files.map(({ path }) => path)
+    assert.ok(paths.includes('example/checkout/src/checkout.mjs'))
+    assert.ok(paths.includes('example/results/checkout-demo.html'))
+    assert.ok(paths.includes('example/results/checkout-demo.svg'))
+    assert.ok(paths.includes('example/readme-demo.png'))
+    assert.ok(!paths.some((path) => /^example\/screenshots\/.*\.png$/.test(path)))
+    assert.ok(!paths.includes('example/results/checkout-demo.json'))
+    assert.ok(!paths.includes('example/results/checkout-demo.png'))
+    assert.ok(size < 1_000_000, `expected packed size below 1 MB, received ${size}`)
+    assert.ok(unpackedSize < 1_000_000, `expected unpacked size below 1 MB, received ${unpackedSize}`)
+  } finally { await rm(cache, { recursive: true, force: true }) }
+})

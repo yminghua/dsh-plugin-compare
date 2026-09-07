@@ -1,2 +1,5 @@
 .work/
 captures/
+screenshots/*.png
+results/*.json
+results/*.png

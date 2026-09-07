@@ -2,6 +2,8 @@
 
 This directory contains reviewed screenshots from the checkout walkthrough captured on 2026-09-07.
 
+The high-resolution PNGs are kept in the [GitHub repository](https://github.com/yminghua/dsh-plugin-compare/tree/main/example/screenshots) but excluded from the npm tarball to keep plugin installs small.
+
 Capture originals in the ignored `example/captures/<run>/` directory printed by `prepare.mjs`.
 Published assets:
 
