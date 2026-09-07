@@ -80,8 +80,8 @@ export function injectStyles(): void {
   if (injected) return
   injected = true
   const style = document.createElement('style')
-  style.dataset.plugin = 'dsh-proof'
-  style.dataset.pluginCss = 'dsh-proof/panel'
+  style.dataset.plugin = 'dsh-plugin-compare'
+  style.dataset.pluginCss = 'dsh-plugin-compare/panel'
   style.textContent = proofStyles
   document.head.appendChild(style)
 }

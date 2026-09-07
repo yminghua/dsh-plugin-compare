@@ -15,6 +15,6 @@ Each compatibility job builds the package and runs:
 pnpm smoke:dsh -- <version-or-tag>
 ```
 
-The smoke script creates a fresh temporary `DSH_HOME`, installs this checkout into the Web profile, boots DSH on an OS-assigned loopback port, performs the launch-token/cookie exchange when required by newer DSH versions, verifies that the boot manifest contains `dsh-proof` with the expected client injections, fetches its manifest-declared client bundle, then stops the Host and removes the temporary profile.
+The smoke script creates a fresh temporary `DSH_HOME`, installs the package selected by `--plugin` (or this checkout by default) into the Web profile, boots DSH on an OS-assigned loopback port, performs the launch-token/cookie exchange when required by newer DSH versions, verifies that the boot manifest contains `dsh-plugin-compare` with the expected client injections, fetches its manifest-declared client bundle, then stops the Host and removes the temporary profile. CI passes a freshly packed tarball so it tests the files users would actually install.
 
 Public CI does not run a real model-backed controlled comparison because that would require credentials, consume tokens, and introduce provider noise. The controlled runner itself is covered by deterministic Host tests; model-backed trials remain an explicit local action.

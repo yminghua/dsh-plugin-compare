@@ -16,7 +16,7 @@
 - [x] Baseline/candidate scorecard
 - [x] Redacted, self-contained JSON and HTML export
 
-## M2 — Replay and proof cards
+## M2 — Replay and comparison cards
 
 - [x] Synchronized split-screen timeline
 - [x] Persisted `write` / `edit` file-diff evidence

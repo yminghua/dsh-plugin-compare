@@ -5,15 +5,21 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const version = process.argv.slice(2).find((argument) => argument !== '--') ?? 'latest'
+const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const argumentsList = process.argv.slice(2).filter((argument) => argument !== '--')
+const pluginOption = argumentsList.indexOf('--plugin')
+const pluginSpec = pluginOption < 0 ? `link:${repository}` : argumentsList[pluginOption + 1]
+if (pluginOption >= 0) argumentsList.splice(pluginOption, 2)
+if (!pluginSpec) throw new Error('--plugin requires a package specifier')
+if (argumentsList.length > 1) throw new Error('Usage: smoke-dsh.mjs [DSH version] [--plugin package-specifier]')
+const version = argumentsList[0] ?? 'latest'
 if (!/^(?:latest|next|\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.test(version)) throw new Error(`Invalid DSH version: ${version}`)
 
-const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const dshHome = await mkdtemp(join(tmpdir(), 'dsh-proof-compat-'))
+const dshHome = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-compat-'))
 const command = `@deepseek-ai/dsh@${version}`
 
 try {
-  await run(['dlx', command, 'plugin', '--profile', 'web', 'add', `link:${repository}`], { DSH_HOME: dshHome })
+  await run(['dlx', command, 'plugin', '--profile', 'web', 'add', pluginSpec], { DSH_HOME: dshHome })
   const server = spawn('pnpm', ['dlx', command, 'web', '--no-open', '--host', '127.0.0.1', '--port', '0'], {
     cwd: repository,
     env: { ...process.env, DSH_HOME: dshHome },
@@ -42,15 +48,15 @@ try {
     try {
       client = await fetchText(clientUrl, browser.cookie)
     } catch (error) {
-      const at = index.indexOf('dsh-proof')
+      const at = index.indexOf('dsh-plugin-compare')
       const fragment = at < 0 ? index.slice(0, 800) : index.slice(Math.max(0, at - 300), at + 600)
       throw new Error(`${error instanceof Error ? error.message : String(error)}\nDSH boot fragment:\n${fragment}`)
     }
-    if (!index.includes('"id":"dsh-proof"')) throw new Error('DSH boot manifest does not include dsh-proof')
-    if (!index.includes('"inject":["connection","slots"]')) throw new Error('DSH boot manifest has unexpected dsh-proof client injections')
-    if (!client.includes('DSH Proof')) throw new Error('dsh-proof client bundle is missing its UI marker')
+    if (!index.includes('"id":"dsh-plugin-compare"')) throw new Error('DSH boot manifest does not include dsh-plugin-compare')
+    if (!index.includes('"inject":["connection","slots"]')) throw new Error('DSH boot manifest has unexpected dsh-plugin-compare client injections')
+    if (!client.includes('DSH Plugin Compare')) throw new Error('dsh-plugin-compare client bundle is missing its UI marker')
     for (const method of ['list', 'presets', 'models', 'controlled-progress', 'unknown-endpoint']) {
-      const response = await fetch(endpoint(url, `/dsh-proof/${method}`), {
+      const response = await fetch(endpoint(url, `/dsh-plugin-compare/${method}`), {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(browser.cookie ? { cookie: browser.cookie } : {}) },
         body: JSON.stringify({ type: 'client-request', rpcId: method, method, payload: method === 'controlled-progress' ? { runId: 'smoke-missing-run' } : {} }),
@@ -71,7 +77,7 @@ try {
         if (!Array.isArray(result.value?.[key])) throw new Error(`${method}: missing ${key}`)
       }
     }
-    process.stdout.write(`dsh-proof compatibility smoke passed: DSH ${version} at ${new URL(url).origin}\n`)
+    process.stdout.write(`dsh-plugin-compare compatibility smoke passed: DSH ${version} at ${new URL(url).origin}\n`)
   } finally {
     await stop(server)
   }
@@ -124,10 +130,10 @@ function pluginClientUrl(base, index) {
   if (end > start) {
     const source = index.slice(start + marker.length, end).trim().replace(/;$/, '')
     const boot = JSON.parse(source)
-    const entry = Array.isArray(boot.entries) ? boot.entries.find((item) => item?.id === 'dsh-proof') : undefined
+    const entry = Array.isArray(boot.entries) ? boot.entries.find((item) => item?.id === 'dsh-plugin-compare') : undefined
     if (typeof entry?.url === 'string') return new URL(entry.url, base).href
   }
-  return endpoint(base, '/plugins/dsh-proof/client.js')
+  return endpoint(base, '/plugins/dsh-plugin-compare/client.js')
 }
 
 async function openIndex(url) {

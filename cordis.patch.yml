@@ -1,7 +1,7 @@
-# dsh-proof host and web-client bundle.
+# dsh-plugin-compare host and web-client bundle.
 - insert:
-  - id: dsh-proof
-    name: dsh-proof
+  - id: dsh-plugin-compare
+    name: dsh-plugin-compare
     config:
       maxRuns: 100
       runTimeoutMs: 900000

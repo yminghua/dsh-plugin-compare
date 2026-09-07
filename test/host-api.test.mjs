@@ -17,7 +17,7 @@ test('Host RPC lists and compares sessions through sessionQuery', async () => {
   const all = [fixtures.candidate, fixtures.baseline]
   const ctx = {
     connection: { rpc: { handle(channel, handler, options) {
-      assert.equal(channel, '/dsh-proof')
+      assert.equal(channel, '/dsh-plugin-compare')
       assert.deepEqual(options, { authority: 'trusted-host' })
       rpcHandler = handler
       return async () => {}

@@ -8,12 +8,12 @@ import { join } from 'node:path'
 import { apply } from '../lib/index.js'
 
 test('controlled RPC runs variants in disposable isolated copies', async () => {
-  const source = await mkdtemp(join(tmpdir(), 'dsh-proof-source-'))
-  const outside = await mkdtemp(join(tmpdir(), 'dsh-proof-outside-'))
+  const source = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-source-'))
+  const outside = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-outside-'))
   await writeFile(join(source, 'input.txt'), 'original')
   execFileSync('git', ['init', source])
   execFileSync('git', ['-C', source, 'add', 'input.txt'])
-  execFileSync('git', ['-C', source, '-c', 'user.name=DSH Proof', '-c', 'user.email=proof@example.invalid', 'commit', '-m', 'fixture'])
+  execFileSync('git', ['-C', source, '-c', 'user.name=DSH Plugin Compare', '-c', 'user.email=proof@example.invalid', 'commit', '-m', 'fixture'])
   let rpcHandler
   const workspaces = []
   const executionOrder = []
@@ -130,7 +130,7 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
 })
 
 test('controlled RPC reports startup failures and skips success checks', async () => {
-  const source = await mkdtemp(join(tmpdir(), 'dsh-proof-failure-source-'))
+  const source = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-failure-source-'))
   await writeFile(join(source, 'input.txt'), 'original')
   let rpcHandler
   const ctx = {

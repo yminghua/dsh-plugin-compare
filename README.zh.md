@@ -1,16 +1,16 @@
-# dsh-proof
+# DSH Plugin Compare
 
-> 别只信 README，跑一下证明。
+> 对比运行，检查证据。
 
-`dsh-proof` 是一个 DeepSeek Harness 插件，用同一任务的原生运行与插件运行做 Before / After 对比，并把 Session 证据生成分屏回放、指标差异和可分享的 Proof Card。
+`dsh-plugin-compare` 用已有 Session 或受控 A/B 运行对比 DeepSeek Harness 插件与 Preset，并把真实执行证据整理成并排时间线、指标差异、显式成功检查和可分享的对比报告。
 
 ## 跟着 example 跑一次
 
-从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。仓库已经收录审核后的真实运行[截图与 HTML 报告](./example/results/checkout-demo.html)。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。
+从 [完整演示教程](./example/README.md) 开始：准备故障结算项目，对比标准模式和 `dsh-expert-mode`，查看验收结果，再保存截图与报告。教程标出了每一步的截图时机；样例无需第三方依赖，Agent 运行仍会消耗模型额度。在仓库根目录运行 `node example/prepare.mjs` 即可创建新的演示工作区，不会改动固定样例或旧工作区。新版名称下的截图和报告会在公开发布前重新录制。
 
 ## 当前状态
 
-当前 Alpha 版既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会为两边显式选择同一个已配置的 provider/model，复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG Proof Card。详见 [路线图](./docs/ROADMAP.md)。
+当前 Alpha 版既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会为两边显式选择同一个已配置的 provider/model，复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG 对比卡片。详见 [路线图](./docs/ROADMAP.md)。
 
 历史 Session 只展示日志里持久化的 `write` / `edit` diff；不会拿当前工作区状态冒充历史 Git 证据。Git 状态只在受控运行的临时副本中采集。
 
@@ -30,7 +30,7 @@ pnpm verify
 安装本地版本到 DSH Web：
 
 ```bash
-dsh plugin --profile web add link:/absolute/path/to/dsh-proof
+dsh plugin --profile web add link:/absolute/path/to/dsh-plugin-compare
 dsh web
 ```
 
@@ -38,7 +38,7 @@ dsh web
 
 - `src/core/`：与 DSH 无关的比较、指标、脱敏逻辑
 - `src/index.ts`：DSH Host 事件适配
-- `src/client/`：Web UI、同步时间线和 Proof Card 导出
+- `src/client/`：Web UI、同步时间线和对比报告导出
 - `test/`：核心行为与事件折叠测试
 - `docs/`：架构、信任边界和路线图
 

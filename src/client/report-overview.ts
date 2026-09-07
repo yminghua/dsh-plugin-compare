@@ -5,7 +5,7 @@ export function ReportOverview({ report }: { report: ProofReport }): React.React
   const { baseline, candidate } = report.comparison
   const pairs = report.experiment?.trials
   return React.createElement('section', { className: 'dproof-overview' },
-    React.createElement('div', { className: 'dproof-eyebrow' }, 'PLUGIN COMPARISON / DSH PROOF'),
+    React.createElement('div', { className: 'dproof-eyebrow' }, 'PLUGIN COMPARISON / DSH PLUGIN COMPARE'),
     React.createElement('h2', null, `${runIdentity(baseline).name} vs ${runIdentity(candidate).name}`),
     React.createElement('div', { className: 'dproof-identities' },
       React.createElement(IdentityCard, { run: baseline, role: 'A · Baseline' }),

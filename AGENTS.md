@@ -1,8 +1,8 @@
-# dsh-proof contributor notes
+# dsh-plugin-compare contributor notes
 
 ## Product boundary
 
-`dsh-proof` compares evidence from DeepSeek Harness runs. It must not silently claim that one plugin is better from a single noisy run. Keep measured facts, user judgments, and model judgments visibly separate.
+`dsh-plugin-compare` compares evidence from DeepSeek Harness runs. It must not silently claim that one plugin is better from a single noisy run. Keep measured facts, user judgments, and model judgments visibly separate.
 
 ## Architecture
 

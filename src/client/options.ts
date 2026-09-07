@@ -3,8 +3,8 @@ import type { ListModelsResult, ListPresetsResult, ListSessionsResult } from '..
 import type {} from '../shared/cordis.ts'
 
 export async function rpc<T>(ctx: Context, endpoint: string, payload: unknown): Promise<T> {
-  const response = await ctx.connection.rpc.call('/dsh-proof', endpoint, payload)
-  if (!response.ok) throw new Error(response.error.message ?? 'DSH Proof request failed')
+  const response = await ctx.connection.rpc.call('/dsh-plugin-compare', endpoint, payload)
+  if (!response.ok) throw new Error(response.error.message ?? 'DSH Plugin Compare request failed')
   return response.value as T
 }
 

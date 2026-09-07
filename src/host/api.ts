@@ -64,7 +64,7 @@ function errorResult(error: unknown): RpcResult<never> {
 
 export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
   const progress = new ProgressStore()
-  ctx.effect(() => ctx.connection.rpc.handle('/dsh-proof', async (endpoint, payload, signal) => {
+  ctx.effect(() => ctx.connection.rpc.handle('/dsh-plugin-compare', async (endpoint, payload, signal) => {
     try {
       if (endpoint === 'list') {
         const requested = payload && typeof payload === 'object' ? Number((payload as Record<string, unknown>).limit) : config.maxRuns
@@ -123,5 +123,5 @@ export function registerProofApi(ctx: HostContext, config: ApiConfig): void {
     } catch (error) {
       return errorResult(error)
     }
-  }, { authority: 'trusted-host' }), 'dsh-proof: RPC API')
+  }, { authority: 'trusted-host' }), 'dsh-plugin-compare: RPC API')
 }

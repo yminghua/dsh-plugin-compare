@@ -5,7 +5,7 @@ import { registerProofApi } from './host/api.ts'
 import './host/services.ts'
 import './shared/cordis.ts'
 
-export const name = 'dsh-proof'
+export const name = 'dsh-plugin-compare'
 export const inject = ['connection', 'sessionQuery', 'agents', 'sessions', 'agentPresets', 'llm']
 
 export interface Config {

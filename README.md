@@ -1,18 +1,18 @@
-# dsh-proof
+# DSH Plugin Compare
 
-> Don't trust the README. Run the proof.
+> Compare the runs. Inspect the evidence.
 
-`dsh-proof` is a DeepSeek Harness plugin for comparing a baseline agent run with a plugin-enabled run. It turns session evidence into a split replay, measurable deltas, and a shareable proof card.
+`dsh-plugin-compare` compares DeepSeek Harness plugins and presets using existing sessions or controlled A/B runs. It turns recorded execution evidence into side-by-side timelines, measurable deltas, explicit success checks, and shareable comparison reports.
 
 中文文档: [README.zh.md](./README.zh.md)
 
 ## Try the checkout example
 
-Follow the [step-by-step walkthrough (Chinese)](./example/README.md): create a fresh intentionally broken checkout project, compare Standard and `dsh-expert-mode`, inspect the checks, and save screenshots and reports. A reviewed real-run [HTML report](./example/results/checkout-demo.html) and screenshots are included. The fixture needs no third-party dependencies; model-backed runs still consume tokens. Run `node example/prepare.mjs` from this repository to prepare a fresh workspace without changing the fixture.
+Follow the [step-by-step walkthrough (Chinese)](./example/README.md): create a fresh intentionally broken checkout project, compare Standard and `dsh-expert-mode`, inspect the checks, and save screenshots and reports. The fixture needs no third-party dependencies; model-backed runs still consume tokens. Run `node example/prepare.mjs` from this repository to prepare a fresh workspace without changing the fixture. Screenshots and reports will be re-recorded for the new product name before the public release.
 
 ## Status
 
-Alpha. The Web `Proof` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs explicitly select one configured provider/model for both variants, copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).
+Alpha. The Web `Compare` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs explicitly select one configured provider/model for both variants, copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).
 
 Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. Runtime Git status and tracked diffs are available only for controlled runs, where they are captured before the temporary copies are removed.
 
@@ -20,10 +20,10 @@ The controlled runner supports 1–10 paired trials and alternates which variant
 
 The selected provider/model is passed explicitly to every controlled Agent. If an Agent fails before completing its task, the structured failure is displayed and exported, the success-check command is marked `not-run`, and the comparison is labeled invalid rather than turning unchanged-code test failures into a preset result.
 
-## Planned evidence
+## Evidence captured
 
 - Task outcome and explicit test result
-- Tokens, cost, time, steps, retries, and tool failures
+- Tokens, time, steps, retries, and tool failures
 - Explicit test results and controlled-run Git snapshots
 - Repeat trials and uncertainty display
 
@@ -39,7 +39,7 @@ pnpm verify
 Install a local checkout into DSH Web:
 
 ```bash
-dsh plugin --profile web add link:/absolute/path/to/dsh-proof
+dsh plugin --profile web add link:/absolute/path/to/dsh-plugin-compare
 dsh web
 ```
 

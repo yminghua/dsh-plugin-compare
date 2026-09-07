@@ -1,7 +1,7 @@
 {
-  "name": "dsh-proof",
-  "version": "0.1.0-alpha.0",
-  "description": "Before/after proof cards and replayable comparisons for DeepSeek Harness plugins.",
+  "name": "dsh-plugin-compare",
+  "version": "0.1.0-alpha.1",
+  "description": "Controlled A/B comparisons and evidence-backed reports for DeepSeek Harness plugins and presets.",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -24,10 +24,23 @@
     "compatibility.json",
     "scripts/smoke-dsh.mjs",
     "cordis.patch.yml",
+    "example",
     "README.md",
     "README.zh.md",
     "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yminghua/dsh-plugin-compare.git"
+  },
+  "homepage": "https://github.com/yminghua/dsh-plugin-compare#readme",
+  "bugs": {
+    "url": "https://github.com/yminghua/dsh-plugin-compare/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -56,6 +69,8 @@
     "dsh",
     "dsh-plugin",
     "evaluation",
+    "comparison",
+    "a-b-testing",
     "benchmark",
     "agent-replay",
     "before-after"

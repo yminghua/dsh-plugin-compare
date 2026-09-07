@@ -12,7 +12,7 @@ src/index.ts             Host adapter and bounded capture
 src/core/                Deterministic fold, compare, redact, export model
         │
         ▼
-src/client/              Session picker, split replay, proof-card UI
+src/client/              Session picker, split replay, comparison-card UI
 ```
 
 ## Why not a monorepo yet?
@@ -32,7 +32,7 @@ The initial product has one release unit and one consumer: a DSH Web profile. Sp
 ## Controlled-run boundary
 
 - The trusted Host resolves the configured provider/model catalog, passes one explicit route to both Agents, creates two temporary filesystem copies, and runs both variants with the same prompt while alternating order across pairs.
-- `node_modules`, `.pnpm-store`, and prior proof-run directories are excluded. Internal symlinks are dereferenced; external symlinks are rejected.
+- `node_modules`, `.pnpm-store`, and prior comparison-run directories are excluded. Internal symlinks are dereferenced; external symlinks are rejected.
 - A regular `.git` directory is copied for isolated status/diff capture. A Git worktree `.git` pointer file is omitted so an experiment cannot address the source repository's Git metadata.
 - The optional success command is an explicit user-authored judgment. Its exit status sets `outcome`; agent completion remains a separate `execution` fact.
 - A success command runs only after the Agent completes. Startup/execution failures are preserved as structured report evidence, leave outcome unknown, and make the comparison explicitly invalid.

@@ -78,7 +78,7 @@ export async function runControlledComparison(
   if (!(await stat(sourceDir)).isDirectory()) throw new Error('sourceDir must be a directory')
   signal?.throwIfAborted()
 
-  const root = await mkdtemp(join(tmpdir(), 'dsh-proof-run-'))
+  const root = await mkdtemp(join(tmpdir(), 'dsh-plugin-compare-run-'))
   try {
     const comparisons: ProofComparison[] = []
     let firstEvidence: ReturnType<typeof comparisonEvidence> | undefined
@@ -158,7 +158,7 @@ async function copyWorkspace(sourceDir: string, destination: string): Promise<vo
       if (source === sourceDir) return true
       const relative = source.slice(sourceDir.length + (sourceDir.endsWith(sep) ? 0 : 1))
       const first = relative.split(sep)[0]
-      if (first === 'node_modules' || first === '.pnpm-store' || first === '.dsh-proof-runs') return false
+      if (first === 'node_modules' || first === '.pnpm-store' || first === '.dsh-plugin-compare-runs') return false
       if (first === '.git' && !gitDirectory) return false
       const entry = await lstat(source)
       if (entry.isSymbolicLink()) {
@@ -188,7 +188,7 @@ async function runVariant(
   const preset = await ctx.agentPresets.resolve(presetId)
   const identity = await readPresetIdentity(preset)
   if (preset.broken) throw new Error(`Preset "${presetId}" is broken: ${preset.broken}`)
-  const sessionId = SessionId(`dsh-proof-${randomUUID()}`)
+  const sessionId = SessionId(`dsh-plugin-compare-${randomUUID()}`)
   const started = Date.now()
   let handle: Awaited<ReturnType<HostContext['agents']['create']>>
   try {
@@ -307,12 +307,12 @@ async function waitForIdle(agent: Agent, timeoutMs: number, signal?: AbortSignal
   const timeout = new Promise<void>((resolve) => {
     timer = setTimeout(() => {
       timedOut = true
-      agent.cancel({ kind: 'hook', reason: 'dsh-proof controlled-run timeout' })
+      agent.cancel({ kind: 'hook', reason: 'dsh-plugin-compare controlled-run timeout' })
       resolve()
     }, timeoutMs)
   })
   const onAbort = () => {
-    agent.cancel({ kind: 'hook', reason: 'dsh-proof request aborted' })
+    agent.cancel({ kind: 'hook', reason: 'dsh-plugin-compare request aborted' })
     abortResolve?.()
   }
   let abortResolve: (() => void) | undefined

@@ -15,11 +15,11 @@ export const inject = ['connection', 'slots']
 export function apply(ctx: Context): void {
   injectStyles()
   ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register(
-    { name: 'conversation.session.header.actions', id: 'dsh-proof', order: 40 },
+    { name: 'conversation.session.header.actions', id: 'dsh-plugin-compare', order: 40 },
     (props: { sessionId?: string }) => React.createElement(ProofAction, props),
   ))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
-    { name: 'shell.overlay', id: 'dsh-proof', order: 40 },
+    { name: 'shell.overlay', id: 'dsh-plugin-compare', order: 40 },
     () => React.createElement(ProofPanel, { ctx }),
   ))
 }
@@ -29,7 +29,7 @@ function ProofAction(props: { sessionId?: string }): React.ReactElement {
     type: 'button',
     className: 'dproof-button',
     onClick: () => requestProofPanel(props.sessionId),
-  }, 'Proof')
+  }, 'Compare')
 }
 
 function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
@@ -171,9 +171,9 @@ function ProofPanel({ ctx }: { ctx: Context }): React.ReactElement | null {
   }, [baselinePreset, candidatePreset, ctx, modelId, modelProvider, presets, prompt, sourceDir, successCommand, trials])
 
   if (!open) return null
-  return React.createElement('section', { className: 'dproof-panel', 'aria-label': 'DSH Proof comparison' },
+  return React.createElement('section', { className: 'dproof-panel', 'aria-label': 'DSH Plugin Compare' },
     React.createElement('header', { className: 'dproof-head' },
-      React.createElement('span', { className: 'dproof-title' }, 'DSH Proof'),
+      React.createElement('span', { className: 'dproof-title' }, 'DSH Plugin Compare'),
       React.createElement('span', { className: 'dproof-fact' }, 'Measured facts only'),
       React.createElement('button', { type: 'button', className: 'dproof-close', onClick: () => setOpen(false), 'aria-label': 'Close' }, '×'),
     ),
@@ -451,7 +451,7 @@ function downloadReport(report: ReturnType<typeof createProofReport>, format: 'j
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `dsh-proof-${Date.now()}.${format}`
+  link.download = `dsh-plugin-compare-${Date.now()}.${format}`
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -474,7 +474,7 @@ async function downloadPng(report: ReturnType<typeof createProofReport>): Promis
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `dsh-proof-${Date.now()}.png`
+    link.download = `dsh-plugin-compare-${Date.now()}.png`
     link.click()
     URL.revokeObjectURL(url)
   } finally {

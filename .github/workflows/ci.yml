@@ -50,4 +50,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: node scripts/smoke-dsh.mjs ${{ matrix.dsh }}
+      - run: pnpm pack --pack-destination "$RUNNER_TEMP"
+      - id: pack
+        run: echo "tarball=dsh-plugin-compare-$(node -p "require('./package.json').version").tgz" >> "$GITHUB_OUTPUT"
+      - run: node scripts/smoke-dsh.mjs ${{ matrix.dsh }} --plugin "${{ runner.temp }}/${{ steps.pack.outputs.tarball }}"

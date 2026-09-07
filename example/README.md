@@ -2,15 +2,9 @@
 
 这个 example 演示完整流程：**准备一个有 bug 的结算函数 → 两套 Preset 分别修复 → 独立运行验收测试 → 查看并导出对比报告**。
 
-这里比较的是两套 Agent Preset 配置，不是保证只改变一个变量的因果实验。目标是学会使用 DSH Proof，不是预设专家模式一定获胜。
+这里比较的是两套 Agent Preset 配置，不是保证只改变一个变量的因果实验。目标是学会使用 DSH Plugin Compare，不是预设专家模式一定获胜。
 
-## 本仓库收录的实跑结果
-
-2026-09-07 的公开样例使用同一个 `deepseek-v4-flash` 模型，对比标准模式和 `dsh-expert-mode` v0.9.2，运行 1 对 trial。两边都完成任务并通过 5/5 验收测试；Candidate 的 Agent time 为 18.1 s（Baseline 20.9 s），工具调用为 7（Baseline 8），记录 Token 为 108,511（Baseline 71,133，包含缓存活动）。这是一对真实观测，`winner` 仍为 `undetermined`，不能当成稳定排名或费用结论。
-
-![Controlled A/B result overview](screenshots/03-result-overview.png)
-
-可以查看[完整 HTML 报告](results/checkout-demo.html)、[JSON 证据](results/checkout-demo.json)、[PNG 卡片](results/checkout-demo.png)和[SVG 卡片](results/checkout-demo.svg)。发布副本中的本机工作区、临时运行目录已经替换为公开占位路径，指标与证据内容未改动。
+> 录制状态：教程与故障 fixture 已就绪。旧名称下生成的截图和报告已经移除；新版素材会在 `dsh-plugin-compare` 完成重命名后重新录制，当前不预填任何运行结果。
 
 ## 目录与注意事项
 
@@ -19,20 +13,20 @@
 - `prompt.txt`：两组使用的同一条任务提示。
 - `.work/`：生成的演示工作区，Git 忽略。
 - `captures/`：本地原始截图、报告和运行记录，Git 忽略。
-- `screenshots/`：已审核的操作截图和初始测试文本记录。
-- `results/`：已审核并脱敏的 HTML、JSON、PNG 和 SVG 报告。
+- `screenshots/`：预留给审核后的操作截图，目前等待重新录制。
+- `results/`：预留给审核并脱敏的 HTML、JSON、PNG 和 SVG 报告，目前为空。
 
 样例不需要第三方依赖，只用 Node.js。Agent 调用仍会消耗模型额度。只在这个专用测试项目和可信 Preset 上运行；临时工作区副本不是安全沙箱。测试文件不由框架强制锁定，因此最后还要检查它们有没有被改动。
 
 ## 0. 准备 DSH 和两个 Preset
 
-已有可用的 DSH Proof 环境可以跳过安装，确认新版插件已经构建并重启即可。不要中断正在进行的实验。
+已有可用的 DSH Plugin Compare 环境可以跳过安装，确认新版插件已经构建并重启即可。不要中断正在进行的实验。
 
 新用户先获取本仓库：
 
 ```bash
-git clone https://github.com/yminghua/dsh-proof.git
-cd dsh-proof
+git clone https://github.com/yminghua/dsh-plugin-compare.git
+cd dsh-plugin-compare
 pnpm install
 pnpm verify
 ```
@@ -40,7 +34,7 @@ pnpm verify
 需要 Node.js 22.19+、pnpm 11.19、Git 和兼容的 DSH。安装本地构建：
 
 ```bash
-# 在 dsh-proof 仓库根目录执行
+# 在 dsh-plugin-compare 仓库根目录执行
 dsh plugin --profile web add "link:$(pwd)"
 ```
 
@@ -60,7 +54,7 @@ dsh web
 
 ## 1. 创建全新的故障工作区
 
-在 **dsh-proof 仓库根目录**的另一个终端执行：
+在 **dsh-plugin-compare 仓库根目录**的另一个终端执行：
 
 ```bash
 node example/prepare.mjs
@@ -68,10 +62,10 @@ node example/prepare.mjs
 
 脚本输出两条绝对路径：
 
-- **Fresh demo workspace**：后面要填入 Proof 的 Source workspace。
+- **Fresh demo workspace**：后面要填入 Compare 面板的 Source workspace。
 - **Save screenshots and reports here**：本轮的素材目录，其中已有 `run-notes.md`。
 
-默认路径形如 `example/.work/checkout-XXXXXX` 和 `example/captures/checkout-XXXXXX`。两者都不会被默认提交。不要使用旧的、已经修好的 `proof-demo-target`，也不要把整个 dsh-proof 仓库作为 Source workspace。
+默认路径形如 `example/.work/checkout-XXXXXX` 和 `example/captures/checkout-XXXXXX`。两者都不会被默认提交。不要使用旧的、已经修好的演示工作区，也不要把整个 dsh-plugin-compare 仓库作为 Source workspace。
 
 ## 2. 确认起点确实有 bug
 
@@ -87,15 +81,15 @@ git status --short
 
 测试覆盖：拒绝负数金额、SAVE10 九折、VIP 与优惠券不叠加、小额结算非负、保留两位小数。当前代码把九折写成减 10，并错误叠加优惠。
 
-公开样例的完整初始输出见 [initial-tests.md](screenshots/initial-tests.md)。复现时可另存终端截图，须包含测试名称和最终计数，并裁掉个人目录和无关内容。
+复现时把完整输出保存为 `screenshots/initial-tests.md`，也可另存终端截图；素材须包含测试名称和最终计数，并裁掉个人目录和无关内容。
 
 如果初始已经 5/5 通过，停下来重新运行准备脚本创建新目录，不要继续拿已修好的代码做 demo。
 
-## 3. 打开 Proof，配置 Controlled A/B
+## 3. 打开 Compare，配置 Controlled A/B
 
-在 DSH Web 添加刚创建的演示工作区，创建一个会话，点击会话标题栏的 **Proof**，切换到 **Controlled A/B**。
+在 DSH Web 添加刚创建的演示工作区，创建一个会话，点击会话标题栏的 **Compare**，切换到 **Controlled A/B**。
 
-**不要先在普通聊天中发送修复任务。** 普通聊天可能直接修复源工作区，破坏故障起点。如果空会话还没显示 Proof，可以先发送“只回复准备好了，不要读取、修改文件或执行命令”，再打开 Proof；这不是实验任务，也可能消耗少量模型额度。
+**不要先在普通聊天中发送修复任务。** 普通聊天可能直接修复源工作区，破坏故障起点。如果空会话还没显示 Compare，可以先发送“只回复准备好了，不要读取、修改文件或执行命令”，再打开 Compare；这不是实验任务，也可能消耗少量模型额度。
 
 按下表填写：
 
@@ -111,7 +105,7 @@ git status --short
 
 我们之前使用 `deepseek-v4-flash`；你不必使用相同模型，但 A/B 必须使用相同路由，不能把不同模型的差异当成插件差异。若插件身份无法自动识别，报告会显示来源未记录，不要将一个猜测的包名当成已验证事实。
 
-**截图 ①：** 点击运行前，保存 `01-controlled-config.png`。重点保留模型、两个 Preset、提示、测试命令和 trials。绝对路径可在公开副本中遮盖。参考[本次实跑配置](screenshots/01-controlled-config.png)。
+**截图 ①：** 点击运行前，保存 `01-controlled-config.png`。重点保留模型、两个 Preset、提示、测试命令和 trials。绝对路径可在公开副本中遮盖。
 
 ## 4. 运行并记录真实进度
 
@@ -119,7 +113,7 @@ git status --short
 
 观察进度卡：复制工作区 → 启动 Agent → Agent 执行 → 成功检查 → 收集证据／清理。它显示当前轮次、A/B、Preset、已用时间、已完成数量及最近活动；首个 Agent 未完成时没有可靠的剩余时间估计。
 
-**截图 ②：** 在 Agent 执行期间保存 `02-running.png`，让用户能看到真实阶段和耗时。可选录制一小段视频；不要为了等截图重复点击运行。参考[本次运行进度](screenshots/02-running.png)。
+**截图 ②：** 在 Agent 执行期间保存 `02-running.png`，让用户能看到真实阶段和耗时。可选录制一小段视频；不要为了等截图重复点击运行。
 
 等待时间取决于模型和 Preset，不承诺固定分钟数。期间不要刷新页面、重启 DSH 或修改源项目；目前没有完整的刷新恢复体验。若提示进度暂不可用，运行可能仍在继续，不要立即启动另一轮。
 
@@ -133,7 +127,7 @@ git status --short
 4. 插件包名、版本、Preset、模型信息是否符合实际配置。
 5. 再比较 Agent 耗时、工具调用、Token 等事实；任意一边更快都可以，不要求固定胜负或百分比。
 
-**截图 ③（主宣传图）：** `03-result-overview.png`，保留两组身份、验收状态、三个关键指标及单轮限制提示。不要只截“下降百分比”而裁掉背景。参考[本次结果总览](screenshots/03-result-overview.png)。
+**截图 ③（主宣传图）：** `03-result-overview.png`，保留两组身份、验收状态、三个关键指标及单轮限制提示。不要只截“下降百分比”而裁掉背景。
 
 **可选截图 ④：** `04-evidence.png`，展示测试输出及 Git 差异，证明不是仅仅生成了一份漂亮报告。
 
@@ -149,7 +143,7 @@ git status --short
 
 下载到浏览器默认目录后，移入脚本打印的本轮素材目录。保留原始文件名，在 `run-notes.md` 填写文件名、日期、版本、模型、真实结果和异常情况。不要用后来重跑的数据替换第一次截图而不说明。
 
-本仓库已经收录一轮审核后的[报告文件](results/README.md)。它们使用可读的稳定文件名；原始导出时间戳文件名不属于证据语义。
+审核后将报告复制到 [`results/`](results/README.md)，并改成稳定、可读的文件名；原始导出时间戳文件名不属于证据语义。
 
 再在**源工作区**执行：
 
@@ -160,12 +154,12 @@ git status --short
 
 预期仍然是 **1 pass / 4 fail**，Git 状态仍干净：修复发生在两份临时副本，而不是源工作区。这一步是确认隔离副本工作流程，不是在宣称安全沙箱。临时副本清理后，修复内容应从导出的 Git 差异查看，不能指望临时路径继续存在。
 
-想再跑一遍：回到 dsh-proof 根目录，重新执行 `node example/prepare.mjs`，使用新工作区和新素材目录。不要修改仓库内的固定故障样例。想观察波动可以另外运行 3–5 对，但会运行 6–10 个 Agent，并产生额外模型消耗。
+想再跑一遍：回到 dsh-plugin-compare 根目录，重新执行 `node example/prepare.mjs`，使用新工作区和新素材目录。不要修改仓库内的固定故障样例。想观察波动可以另外运行 3–5 对，但会运行 6–10 个 Agent，并产生额外模型消耗。
 
 ## 7. 审核后放入公开 repo
 
 **先存 `captures/`，不要直接提交原始导出。** 自动脱敏覆盖不完整，`matches: 0` 不代表没有敏感信息。检查截图、代码差异、命令输出、账号信息、密钥、私人 URL 和本机绝对路径。
 
-审核后的图片副本放入 [screenshots/](screenshots/README.md)，报告副本放入 [results/](results/README.md)。记录哪些内容被遮盖或补充，但不要改变测量值。本仓库中的公开样例已按此流程处理；复现产生的新原始材料仍应先放在 Git 忽略的 `captures/` 中。
+审核后的图片副本放入 [screenshots/](screenshots/README.md)，报告副本放入 [results/](results/README.md)。记录哪些内容被遮盖或补充，但不要改变测量值。复现产生的新原始材料应先放在 Git 忽略的 `captures/` 中。
 
 最终可以说：“这次运行中，两组通过了现有验收测试，报告记录了它们的执行差异。”不能仅凭这个例子说“该插件稳定更强／省钱”：Token 包括缓存活动，不等于费用；单轮结果和测试覆盖也有局限。

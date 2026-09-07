@@ -1,5 +1,5 @@
 {
-  "name": "dsh-proof-checkout-example",
+  "name": "dsh-plugin-compare-checkout-example",
   "private": true,
   "type": "module",
   "scripts": {

@@ -6,7 +6,7 @@ for (const failed of ['list', 'presets', 'models']) {
   test(`options retain successful lists when ${failed} fails`, async () => {
     const values = { list: { sessions: [{ sessionId: 's', cwd: '/demo' }], total: 1 }, presets: { presets: [{ id: 'base' }] }, models: { providers: [{ id: 'deepseek', models: [] }] } }
     const ctx = { connection: { rpc: { async call(channel, method) {
-      assert.equal(channel, '/dsh-proof')
+      assert.equal(channel, '/dsh-plugin-compare')
       if (method === failed) return { ok: false, error: { code: 'internal', message: 'original failure', details: {} } }
       return { ok: true, value: values[method] }
     } } } }

@@ -1,13 +1,13 @@
 # Public example reports
 
-This directory contains reviewed outputs from the model-backed checkout walkthrough run captured on 2026-09-07:
+This directory is reserved for reviewed outputs from the model-backed checkout walkthrough:
 
-- [`checkout-demo.html`](checkout-demo.html) — self-contained readable report;
-- [`checkout-demo.json`](checkout-demo.json) — detailed evidence;
-- [`checkout-demo.png`](checkout-demo.png) — shareable card;
-- [`checkout-demo.svg`](checkout-demo.svg) — vector card.
+- `checkout-demo.html` — self-contained readable report;
+- `checkout-demo.json` — detailed evidence;
+- `checkout-demo.png` — shareable card;
+- `checkout-demo.svg` — vector card.
 
-Both variants passed the 5-test success check. The report contains one paired observation, keeps `winner: undetermined`, and does not establish a stable performance or cost ranking.
+No report is currently published: the previous set used the old product name and was removed before the rename. The next recording must report its actual outcome; it does not need to produce a winner.
 
 Keep original exports in `example/captures/<run>/` first (ignored by Git). Save:
 
@@ -20,6 +20,4 @@ Before publishing copies here, review code, command output, credentials, account
 Automatic secret redaction is incomplete. A report with `matches: 0` is not a privacy clearance.
 If publishing modified copies, state what was removed or annotated and do not change measurements.
 
-For this publication copy, local macOS workspace and temporary-run prefixes were replaced with `demo-workspace` and `example-run`. Metrics, session evidence, test output, diffs, plugin identity, and provenance were not changed. The screenshots received separate visual path masking by the author.
-
-Future runs should keep the tested plugin identity and its provenance; do not retroactively claim inferred labels were captured during execution.
+Publication copies must replace machine-local workspace and temporary-run prefixes without changing metrics, session evidence, test output, diffs, plugin identity, or provenance. Do not retroactively claim inferred labels were captured during execution.

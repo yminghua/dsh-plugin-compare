@@ -1,4 +1,4 @@
-const OPEN_EVENT = 'dsh-proof:open'
+const OPEN_EVENT = 'dsh-plugin-compare:open'
 
 export interface ProofPanelRequest { sessionId?: string }
 

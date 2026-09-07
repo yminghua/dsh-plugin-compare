@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,20 +30,20 @@ test('checkout example stays intentionally broken and preparation creates indepe
     const notes = await readFile(join(first.captureDir, 'run-notes.md'), 'utf8')
     assert.ok(notes.includes(first.sourceHead))
     assert.ok(notes.includes(first.sourceDir))
-    assert.doesNotMatch(notes, /\{\{SOURCE_|\{\{PROOF_/)
+    assert.doesNotMatch(notes, /\{\{SOURCE_|\{\{COMPARE_/)
   } finally { await rm(parent, { recursive: true, force: true }) }
 })
 
-test('published checkout example artifacts contain no machine-local paths', async () => {
-  const files = [
-    'example/screenshots/initial-tests.md',
-    'example/results/checkout-demo.html',
-    'example/results/checkout-demo.json',
-    'example/results/checkout-demo.svg',
-  ]
+test('published checkout example text artifacts contain no machine-local paths', async () => {
+  const files = []
+  for (const directory of ['example/screenshots', 'example/results']) {
+    for (const entry of await readdir(join(root, directory))) {
+      if (/\.(?:html|json|md|svg)$/.test(entry)) files.push(join(directory, entry))
+    }
+  }
   for (const file of files) {
     const contents = await readFile(join(root, file), 'utf8')
-    assert.doesNotMatch(contents, /\/Users\/|\/(?:private\/)?var\/folders\/|Pprojects\/DSH-Plugins|dsh-proof-run-[A-Za-z0-9]+/, file)
+    assert.doesNotMatch(contents, /\/Users\/|\/(?:private\/)?var\/folders\/|Pprojects\/DSH-Plugins|dsh-plugin-compare-run-[A-Za-z0-9]+/, file)
+    if (file.endsWith('.json')) JSON.parse(contents)
   }
-  JSON.parse(await readFile(join(root, 'example/results/checkout-demo.json'), 'utf8'))
 })

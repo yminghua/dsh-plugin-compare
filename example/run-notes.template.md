@@ -3,7 +3,7 @@
 ## Environment and inputs
 
 - Date / timezone: TODO
-- dsh-proof commit: {{PROOF_COMMIT}}
+- dsh-plugin-compare commit: {{COMPARE_COMMIT}}
 - DSH version: TODO
 - Node.js version: TODO
 - Candidate plugin version: TODO (example: dsh-expert-mode 0.9.2; record what actually ran)
