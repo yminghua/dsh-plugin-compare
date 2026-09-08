@@ -8,25 +8,23 @@
 
 ## 安装
 
-需要 Node.js 22.19+ 和 DSH Web profile。当前仍是预发布版本，请显式安装 `next` 通道：
-
-```bash
-dsh plugin --profile web add dsh-plugin-compare@next
-dsh web
-```
-
-稳定版发布后使用不带 dist-tag 的包名：
+需要 Node.js 22.19+ 和 DSH Web profile。从 npm 安装稳定版：
 
 ```bash
 dsh plugin --profile web add dsh-plugin-compare
+dsh web
 ```
 
-npm 要求每个已发布的包都存在 `latest` 标签。首个版本曾将 `latest` 初始化为 alpha，后续预发布版本只更新 `next`，因此不带 dist-tag 的安装仍可能解析到旧 alpha；请将其视为预发布版本，并在首个稳定版把 `latest` 移到稳定版本之前显式使用 `@next`。
+`next` 通道只用于明确宣布的预发布版本；仅在参与预发布测试时选择它：
+
+```bash
+dsh plugin --profile web add dsh-plugin-compare@next
+```
 
 在同一个 profile 中升级或卸载：
 
 ```bash
-dsh plugin --profile web update dsh-plugin-compare@next
+dsh plugin --profile web update dsh-plugin-compare
 dsh plugin --profile web remove dsh-plugin-compare
 ```
 
@@ -38,7 +36,7 @@ dsh plugin --profile web remove dsh-plugin-compare
 
 ## 当前状态
 
-当前 Alpha 版既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会为两边显式选择同一个已配置的 provider/model，复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG 对比卡片。详见 [路线图](./docs/ROADMAP.md)。
+稳定版 0.1.x 既能比较两个历史 Session，也能运行一组受控 Baseline / Candidate。受控运行会为两边显式选择同一个已配置的 provider/model，复制两份源工作区，分别挂载选择的 Agent Preset，提交完全相同的提示，并可在两边执行同一个成功检查命令、采集当时的 Git 状态和 tracked diff。报告包含同步时间线、持久化文件 diff、显式检查结果，以及默认脱敏的 JSON、自包含 HTML 和 SVG/PNG 对比卡片。详见 [路线图](./docs/ROADMAP.md)。
 
 历史 Session 只展示日志里持久化的 `write` / `edit` diff；不会拿当前工作区状态冒充历史 Git 证据。Git 状态只在受控运行的临时副本中采集。
 

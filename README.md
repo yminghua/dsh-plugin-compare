@@ -10,25 +10,23 @@
 
 ## Installation
 
-Requires Node.js 22.19+ and a DSH Web profile. While the package is in prerelease, explicitly install the `next` channel:
-
-```bash
-dsh plugin --profile web add dsh-plugin-compare@next
-dsh web
-```
-
-Stable releases use the unqualified package name:
+Requires Node.js 22.19+ and a DSH Web profile. Install the stable release from npm:
 
 ```bash
 dsh plugin --profile web add dsh-plugin-compare
+dsh web
 ```
 
-npm requires every published package to have a `latest` tag. The first published version bootstrapped `latest` to an alpha, and later prereleases update only `next`; an unqualified install may therefore still resolve to an alpha. Treat it as a prerelease and use `@next` explicitly until the first stable release moves `latest` to a stable version.
+The `next` channel is reserved for explicitly announced prereleases. Opt in only when testing one:
+
+```bash
+dsh plugin --profile web add dsh-plugin-compare@next
+```
 
 Update or remove the installed package with the same profile:
 
 ```bash
-dsh plugin --profile web update dsh-plugin-compare@next
+dsh plugin --profile web update dsh-plugin-compare
 dsh plugin --profile web remove dsh-plugin-compare
 ```
 
@@ -40,7 +38,7 @@ Follow the [step-by-step walkthrough (Chinese)](./example/README.md): create a f
 
 ## Status
 
-Alpha. The Web `Compare` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs explicitly select one configured provider/model for both variants, copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).
+Stable 0.1.x. The Web `Compare` panel can compare two existing sessions or run a controlled baseline/candidate pair. Controlled runs explicitly select one configured provider/model for both variants, copy the source workspace twice, compose the selected agent preset in each copy, submit the same prompt, optionally execute the same success-check command, and capture runtime Git evidence. Reports include synchronized timelines, persisted file diffs, explicit check outcomes, and redacted JSON, self-contained HTML, SVG, or PNG exports. See [the roadmap](./docs/ROADMAP.md).
 
 Historical sessions only expose `write` / `edit` diffs persisted in the canonical log. Runtime Git status and tracked diffs are available only for controlled runs, where they are captured before the temporary copies are removed.
 
