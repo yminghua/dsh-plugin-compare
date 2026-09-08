@@ -6,7 +6,7 @@ import { join, sep } from 'node:path'
 import { promisify } from 'node:util'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   applyControlledFacts,
   compareRuns,
@@ -37,6 +37,17 @@ export interface ControlledRunConfig {
 }
 
 interface VariantResult { run: RunComparison['baseline']; evidence: RunEvidence }
+
+interface CompatibleSessionEventSource {
+  snapshotEvents?: () => readonly SessionEvent[]
+  events?: readonly SessionEvent[]
+}
+
+function snapshotSessionEvents(session: CompatibleSessionEventSource): readonly SessionEvent[] {
+  if (typeof session.snapshotEvents === 'function') return session.snapshotEvents()
+  if (Array.isArray(session.events)) return session.events
+  throw new Error('Unsupported DSH Session API: expected snapshotEvents() or events')
+}
 
 export async function listUsablePresets(ctx: HostContext): Promise<PresetListItem[]> {
   return Promise.all((await ctx.agentPresets.list()).map(async (preset) => ({
@@ -210,7 +221,7 @@ async function runVariant(
     progress?.({ phase: 'running' })
     let lastCount = -1
     const activity = () => {
-      const count = handle.agent.session.events.length
+      const count = snapshotSessionEvents(handle.agent.session).length
       if (count !== lastCount) {
         lastCount = count
         progress?.({ events: count, ...(count ? { lastActivityAt: Date.now() } : {}) })
@@ -224,13 +235,14 @@ async function runVariant(
     activity()
     progress?.({ phase: 'collecting' })
     await ctx.sessions.flush(handle.agent.session)
+    const events = snapshotSessionEvents(handle.agent.session)
     const git = await captureGit(cwd, config.checkTimeoutMs)
     const projected = projectSession({
       id: sessionId,
       title: `${presetName} · controlled`,
       createdAt: handle.agent.session.header.createdAt,
       cwd,
-      events: handle.agent.session.events,
+      events,
     })
     const routed = {
       ...projected,
@@ -245,7 +257,7 @@ async function runVariant(
         ? skippedCheck(successCommand, routed.failure)
         : successCommand ? await runCheck(cwd, successCommand, config.checkTimeoutMs) : undefined
     const run = applyControlledFacts(routed, check, git)
-    const evidence: RunEvidence = { ...projectSessionEvidence(sessionId, handle.agent.session.events), git }
+    const evidence: RunEvidence = { ...projectSessionEvidence(sessionId, events), git }
     return { run, evidence }
   } finally {
     if (activityTimer) clearInterval(activityTimer)

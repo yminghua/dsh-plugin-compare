@@ -47,7 +47,11 @@ test('controlled RPC runs variants in disposable isolated copies', async () => {
           { seq: 0, type: 'turn/start', time: 1000, data: { turn: 1 } },
           { seq: 1, type: 'turn/end', time: 1100, data: { turn: 1, reason: { kind: 'completed' } } },
         ]
-        const session = { id: options.sessionId, header: { id: options.sessionId, createdAt: 1000, cwd: options.meta.cwd }, events }
+        const session = {
+          id: options.sessionId,
+          header: { id: options.sessionId, createdAt: 1000, cwd: options.meta.cwd },
+          snapshotEvents() { return events },
+        }
         const agent = {
           session, status: 'idle',
           followup() { writeFileSync(join(options.meta.cwd, 'generated.txt'), options.meta.agentPreset) },
